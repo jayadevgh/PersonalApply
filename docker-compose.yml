@@ -1,0 +1,16 @@
+services:
+  db:
+    image: postgres:15
+    container_name: personalapply-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: personalapply
+      POSTGRES_PASSWORD: personalapply
+      POSTGRES_DB: personalapply
+    ports:
+      - "5432:5432"
+    volumes:
+      - personalapply_pgdata:/var/lib/postgresql/data
+
+volumes:
+  personalapply_pgdata:
