@@ -16,6 +16,10 @@ class AnswerTemplate(Base):
     )
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    # Memory key — used for exact-match autofill on repeat runs
+    normalized_question_text: Mapped[str | None] = mapped_column(Text, nullable=True, index=True)
+    field_type: Mapped[str | None] = mapped_column(String, nullable=True)
+    options_fingerprint: Mapped[str | None] = mapped_column(String(32), nullable=True)
     category: Mapped[str] = mapped_column(String, nullable=False)
     title: Mapped[str] = mapped_column(String, nullable=False)
     answer_text: Mapped[str] = mapped_column(Text, nullable=False)

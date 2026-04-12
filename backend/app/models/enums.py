@@ -7,6 +7,7 @@ class JobStatus(str, Enum):
     CLAIMED = "claimed"
     APPLYING = "applying"
     BLOCKED_WAITING_FOR_USER = "blocked_waiting_for_user"
+    REVIEW = "review"
     SUBMITTED = "submitted"
     FAILED = "failed"
     SKIPPED = "skipped"

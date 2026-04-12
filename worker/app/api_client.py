@@ -44,3 +44,58 @@ class BackendClient:
         resp = self.client.get("/questions/blocked")
         resp.raise_for_status()
         return resp.json()
+
+    def get_submit_signal(self, job_id: str) -> str | None:
+        resp = self.client.get(f"/jobs/{job_id}/signal")
+        resp.raise_for_status()
+        return resp.json().get("signal")
+
+    def get_profile(self) -> dict:
+        resp = self.client.get("/profile")
+        resp.raise_for_status()
+        return resp.json()
+
+    def get_question_answer(self, question_id: str) -> str | None:
+        resp = self.client.get(f"/questions/{question_id}/answer")
+        if resp.status_code == 404:
+            return None
+        resp.raise_for_status()
+        return resp.json().get("final_submitted_text")
+
+    def post_fill_log(self, worker_id: str, events: list[dict]) -> None:
+        resp = self.client.post(f"/workers/{worker_id}/fill-log", json=events)
+        resp.raise_for_status()
+
+    def get_fill_log(self, worker_id: str) -> list[dict]:
+        resp = self.client.get(f"/workers/{worker_id}/fill-log")
+        if resp.status_code == 404:
+            return []
+        resp.raise_for_status()
+        return resp.json()
+
+    def post_field_override(self, worker_id: str, override: dict) -> None:
+        resp = self.client.post(f"/workers/{worker_id}/field-override", json=override)
+        resp.raise_for_status()
+
+    def get_field_overrides(self, worker_id: str) -> list[dict]:
+        resp = self.client.get(f"/workers/{worker_id}/field-overrides")
+        resp.raise_for_status()
+        return resp.json()
+
+    def get_exact_template(
+        self,
+        normalized_text: str,
+        field_type: str | None,
+        options_fingerprint: str | None,
+    ) -> dict | None:
+        """Return matching template dict or None if no exact match."""
+        params: dict = {"normalized_text": normalized_text}
+        if field_type:
+            params["field_type"] = field_type
+        if options_fingerprint:
+            params["options_fingerprint"] = options_fingerprint
+        resp = self.client.get("/answers/templates/exact-match", params=params)
+        if resp.status_code == 404:
+            return None
+        resp.raise_for_status()
+        return resp.json()

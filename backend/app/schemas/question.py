@@ -13,11 +13,14 @@ class QuestionCreateRequest(BaseModel):
     field_label: str | None = None
     page_url: str | None = None
     dom_hint: str | None = None
+    options: list[str] | None = None
+    options_fingerprint: str | None = None
+    required: bool = False
 
 
 class QuestionAnswerRequest(BaseModel):
     worker_id: UUID
-    final_submitted_text: str
+    final_submitted_text: str = ""
     answer_template_id: UUID | None = None
     save_as_template: bool = False
     template_title: str | None = None
@@ -40,9 +43,13 @@ class SimilarAnswer(BaseModel):
 class BlockedQuestionResponse(BaseModel):
     id: UUID
     job_id: UUID
+    worker_id: UUID
     company: str
     title: str
     raw_text: str
+    field_type: str | None
+    options: list[str] | None
+    required: bool
     status: str
     similar_answers: list[SimilarAnswer]
     created_at: datetime

@@ -1,0 +1,1461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PersonalApply</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #0f0f0f; color: #e8e8e8; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+
+    /* ── Top nav ── */
+    header { background: #141414; border-bottom: 1px solid #2a2a2a; display: flex; align-items: center; gap: 0; padding: 0 16px; flex-shrink: 0; height: 48px; }
+    .brand { font-size: 14px; font-weight: 700; color: #fff; margin-right: 20px; white-space: nowrap; }
+    .tabs { display: flex; gap: 2px; overflow-x: auto; flex: 1; }
+    .tab { background: none; border: none; padding: 0 16px; height: 48px; font-size: 13px; color: #666; cursor: pointer; white-space: nowrap; border-bottom: 2px solid transparent; transition: color 0.15s; display: flex; align-items: center; gap: 7px; }
+    .tab:hover { color: #aaa; }
+    .tab.active { color: #fff; border-bottom-color: #4a9eff; }
+    .tab-badge { background: #e53e3e; color: #fff; font-size: 10px; font-weight: 700; padding: 1px 5px; border-radius: 8px; min-width: 16px; text-align: center; }
+    .tab-badge.zero { background: #2a2a2a; color: #555; }
+    .tab-status { font-size: 10px; padding: 2px 6px; border-radius: 10px; }
+    .tab-status.waiting { background: #7c3aed22; color: #a78bfa; }
+    .tab-status.working { background: #05966922; color: #34d399; }
+    .tab-status.idle { background: #2a2a2a; color: #555; }
+    .tab-status.paused { background: #d97706; color: #fff; }
+
+    /* ── Tab panels ── */
+    .panel { display: none; flex: 1; overflow: hidden; }
+    .panel.active { display: flex; }
+
+    /* ── Profile panel ── */
+    #panel-profile { flex-direction: column; overflow-y: auto; padding: 28px 32px; gap: 24px; }
+    .profile-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    @media (max-width: 900px) { .profile-grid { grid-template-columns: 1fr; } }
+    .profile-section { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 10px; padding: 20px; display: flex; flex-direction: column; gap: 14px; }
+    .profile-section h3 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.6px; color: #666; }
+    .field-row { display: flex; flex-direction: column; gap: 4px; }
+    .field-row label { font-size: 12px; color: #888; }
+    .field-input { background: #111; border: 1px solid #2a2a2a; border-radius: 6px; padding: 8px 10px; color: #e8e8e8; font-size: 13px; font-family: inherit; width: 100%; }
+    .field-input:focus { outline: none; border-color: #4a9eff; }
+    .field-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .resume-zone { border: 2px dashed #2a2a2a; border-radius: 8px; padding: 20px; text-align: center; cursor: pointer; transition: border-color 0.15s; }
+    .resume-zone:hover { border-color: #4a9eff; }
+    .resume-zone.has-file { border-color: #34d399; border-style: solid; }
+    .resume-zone p { font-size: 13px; color: #666; }
+    .resume-zone .filename { font-size: 13px; color: #34d399; margin-top: 4px; }
+    #resume-file-input { display: none; }
+    .save-row { display: flex; gap: 10px; align-items: center; }
+    .btn-save { background: #4a9eff; color: #fff; border: none; border-radius: 6px; padding: 10px 24px; font-size: 14px; font-weight: 500; cursor: pointer; }
+    .btn-save:hover { opacity: 0.85; }
+    #profile-status { font-size: 12px; color: #68d391; }
+
+    /* ── Worker panel ── */
+    .worker-panel { flex: 1; display: flex; overflow: hidden; }
+
+    /* Left sidebar */
+    .sidebar { width: 280px; min-width: 280px; border-right: 1px solid #2a2a2a; display: flex; flex-direction: column; background: #141414; overflow: hidden; }
+    .sidebar-section-header { padding: 10px 14px 6px; font-size: 10px; text-transform: uppercase; letter-spacing: 0.6px; color: #555; display: flex; align-items: center; justify-content: space-between; }
+    .sidebar-list { flex: 1; overflow-y: auto; }
+    .answered-section { border-top: 1px solid #1f1f1f; flex-shrink: 0; max-height: 40%; overflow-y: auto; }
+    .clear-btn { background: none; border: none; font-size: 10px; color: #555; cursor: pointer; padding: 2px 6px; border-radius: 4px; }
+    .clear-btn:hover { color: #aaa; background: #222; }
+    .q-item { padding: 12px 14px; border-bottom: 1px solid #1a1a1a; cursor: pointer; transition: background 0.1s; }
+    .q-item:hover { background: #1e1e1e; }
+    .q-item.active { background: #1c2a3a; border-left: 3px solid #4a9eff; padding-left: 11px; }
+    .q-item.answered-item { opacity: 0.7; }
+    .q-item.answered-item.active { background: #0d1f12; border-left-color: #34d399; opacity: 1; }
+    .q-company { font-size: 10px; color: #666; text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 2px; }
+    .q-text { font-size: 12px; color: #ccc; line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .q-meta { display: flex; gap: 5px; align-items: center; margin-top: 4px; }
+    .q-badge { font-size: 10px; padding: 1px 5px; border-radius: 3px; }
+    .q-badge.required { background: #7f1d1d; color: #fca5a5; }
+    .q-badge.answered { background: #064e3b; color: #6ee7b7; }
+    .q-badge.type { background: #1e3a5f; color: #7dd3fc; }
+    .sidebar-empty { padding: 20px 14px; font-size: 12px; color: #444; text-align: center; }
+
+    /* Right detail */
+    #detail { flex: 1; overflow-y: auto; padding: 28px 32px; display: flex; flex-direction: column; gap: 18px; }
+    .detail-empty { flex: 1; display: flex; align-items: center; justify-content: center; color: #444; font-size: 14px; }
+
+    .detail-block { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 8px; padding: 16px; }
+    .detail-company { font-size: 11px; color: #888; margin-bottom: 3px; }
+    .detail-jobtitle { font-size: 13px; color: #bbb; margin-bottom: 8px; }
+    .detail-question { font-size: 16px; color: #fff; font-weight: 500; line-height: 1.5; }
+    .detail-required { font-size: 11px; color: #fca5a5; margin-top: 6px; }
+
+    .section-label { font-size: 11px; color: #555; text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 8px; }
+
+    .similar-list { display: flex; flex-direction: column; gap: 6px; }
+    .similar-item { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 6px; padding: 10px 12px; cursor: pointer; transition: border-color 0.15s; }
+    .similar-item:hover { border-color: #4a9eff; }
+    .similar-item.selected { border-color: #4a9eff; background: #1c2a3a; }
+    .similar-meta { font-size: 10px; color: #555; margin-bottom: 3px; }
+    .similar-text { font-size: 12px; color: #bbb; line-height: 1.35; }
+
+    /* Answer inputs */
+    #answer-textarea { width: 100%; min-height: 110px; background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 8px; padding: 11px; color: #e8e8e8; font-size: 14px; font-family: inherit; line-height: 1.5; resize: vertical; }
+    #answer-textarea:focus, .rs-search:focus, #answer-select:focus { outline: none; border-color: #4a9eff; }
+    #answer-select { width: 100%; background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 8px; padding: 10px 12px; color: #e8e8e8; font-size: 14px; font-family: inherit; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23666' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; cursor: pointer; }
+    #answer-select option { background: #1a1a1a; }
+    .radio-group { display: flex; flex-direction: column; gap: 6px; }
+    .radio-row { display: flex; align-items: center; gap: 10px; padding: 9px 12px; background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 6px; cursor: pointer; transition: border-color 0.15s; }
+    .radio-row:hover { border-color: #4a9eff; }
+    .radio-row input[type=radio] { accent-color: #4a9eff; width: 14px; height: 14px; cursor: pointer; flex-shrink: 0; }
+    .radio-row label { font-size: 13px; color: #ccc; cursor: pointer; flex: 1; }
+    .radio-row:has(input:checked) { border-color: #4a9eff; background: #1c2a3a; }
+    .radio-row:has(input:checked) label { color: #fff; }
+    .rs-wrapper { position: relative; }
+    .rs-search { width: 100%; background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 8px; padding: 10px 12px; color: #e8e8e8; font-size: 14px; font-family: inherit; }
+    .rs-dropdown { position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: #1e1e1e; border: 1px solid #3a3a3a; border-radius: 8px; max-height: 200px; overflow-y: auto; z-index: 100; display: none; box-shadow: 0 8px 24px #00000066; }
+    .rs-dropdown.open { display: block; }
+    .rs-option { padding: 9px 12px; font-size: 13px; color: #ccc; cursor: pointer; }
+    .rs-option:hover, .rs-option.hl { background: #1c2a3a; color: #fff; }
+    .rs-option.sel { color: #4a9eff; }
+
+    /* Template save */
+    .save-template-row { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #aaa; cursor: pointer; }
+    .save-template-row input[type=checkbox] { accent-color: #4a9eff; width: 14px; height: 14px; cursor: pointer; }
+    .template-fields { display: none; flex-direction: column; gap: 8px; padding-top: 10px; padding-left: 22px; }
+    .tmpl-input { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 6px; padding: 7px 10px; color: #e8e8e8; font-size: 13px; font-family: inherit; width: 100%; }
+    .tmpl-input:focus { outline: none; border-color: #4a9eff; }
+
+    /* Category picker */
+    .cat-picker { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+    .cat-btn { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 20px; padding: 4px 12px; font-size: 12px; color: #888; cursor: pointer; transition: all 0.15s; }
+    .cat-btn:hover { border-color: #4a9eff; color: #ccc; }
+    .cat-btn.active { background: #1c2a3a; border-color: #4a9eff; color: #fff; }
+
+    /* Action buttons */
+    .actions { display: flex; gap: 8px; padding-top: 2px; flex-wrap: wrap; }
+    .btn { padding: 9px 18px; border: none; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; transition: opacity 0.15s; }
+    .btn:hover { opacity: 0.85; }
+    .btn:disabled { opacity: 0.35; cursor: not-allowed; }
+    .btn-primary { background: #4a9eff; color: #fff; }
+    .btn-secondary { background: #2a2a2a; color: #888; }
+    .btn-ghost { background: #2a2a2a; color: #555; font-size: 12px; }
+    .btn-danger { background: #7f1d1d; color: #fca5a5; }
+    #status-bar { font-size: 12px; color: #555; min-height: 16px; }
+
+    /* ── Jobs panel ── */
+    #panel-jobs { flex-direction: column; overflow-y: auto; padding: 28px 32px; gap: 20px; max-width: 860px; width: 100%; margin: 0 auto; }
+    .job-add-box { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 10px; padding: 20px; display: flex; flex-direction: column; gap: 14px; }
+    .job-add-box h3 { font-size: 13px; font-weight: 600; color: #ccc; }
+    .job-url-row { display: flex; gap: 10px; }
+    .job-url-row .field-input { flex: 1; }
+    .job-fields-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .platform-tag { font-size: 11px; background: #1e3a5f; color: #7dd3fc; padding: 2px 8px; border-radius: 10px; align-self: center; }
+    .job-list { display: flex; flex-direction: column; gap: 8px; }
+    .job-row { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 8px; padding: 14px 16px; display: flex; align-items: center; gap: 12px; }
+    .job-row-info { flex: 1; min-width: 0; }
+    .job-row-company { font-size: 11px; color: #888; margin-bottom: 2px; }
+    .job-row-title { font-size: 14px; color: #ddd; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .job-row-url { font-size: 11px; color: #555; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+    .job-status-tag { font-size: 11px; padding: 3px 9px; border-radius: 10px; white-space: nowrap; flex-shrink: 0; }
+    .status-queued { background: #1e3a5f; color: #7dd3fc; }
+    .status-applying { background: #064e3b; color: #6ee7b7; }
+    .status-blocked_waiting_for_user { background: #7c3aed22; color: #a78bfa; }
+    .status-submitted { background: #065f46; color: #34d399; }
+    .status-failed { background: #7f1d1d; color: #fca5a5; }
+    .status-skipped { background: #292524; color: #78716c; }
+    .status-claimed { background: #1e3a5f; color: #93c5fd; }
+    .job-actions { display: flex; gap: 6px; flex-shrink: 0; }
+    .jobs-section-label { font-size: 11px; color: #555; text-transform: uppercase; letter-spacing: 0.6px; }
+    #jobs-add-status { font-size: 12px; min-height: 16px; }
+
+    .spinner { display: inline-block; width: 11px; height: 11px; border: 2px solid #333; border-top-color: #4a9eff; border-radius: 50%; animation: spin 0.6s linear infinite; vertical-align: middle; margin-right: 5px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Answered view */
+    .answered-banner { background: #0d1f12; border: 1px solid #064e3b; border-radius: 8px; padding: 12px 16px; font-size: 13px; color: #6ee7b7; display: flex; align-items: center; justify-content: space-between; }
+    .answered-edit-note { font-size: 12px; color: #555; }
+
+    /* Fill log */
+    .fill-log { display: flex; flex-direction: column; gap: 0; }
+    .fill-log-header { font-size: 11px; text-transform: uppercase; letter-spacing: 0.6px; color: #555; margin-bottom: 10px; }
+    .fill-log-row { padding: 10px 0; border-bottom: 1px solid #1f1f1f; }
+    .fill-log-row:last-child { border-bottom: none; }
+    .fill-log-top { display: flex; align-items: center; gap: 10px; }
+    .fill-log-label { font-size: 11px; color: #666; flex: 0 0 180px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .fill-log-value { font-size: 13px; color: #e8e8e8; flex: 1; word-break: break-word; }
+    .fill-log-source { font-size: 10px; padding: 1px 6px; border-radius: 3px; flex-shrink: 0; }
+    .fill-log-source.profile { background: #1e3a5f; color: #7dd3fc; }
+    .fill-log-source.template { background: #064e3b; color: #6ee7b7; }
+    .fill-log-source.ui { background: #4c1d95; color: #c4b5fd; }
+    .fill-log-edit-btn { background: none; border: 1px solid #2a2a2a; border-radius: 4px; color: #555; font-size: 11px; padding: 2px 8px; cursor: pointer; flex-shrink: 0; transition: all 0.1s; }
+    .fill-log-edit-btn:hover { border-color: #4a9eff; color: #4a9eff; }
+    .fill-log-edit-form { margin-top: 8px; display: flex; gap: 8px; align-items: flex-start; }
+    .fill-log-edit-input { flex: 1; background: #111; border: 1px solid #4a9eff; border-radius: 6px; padding: 7px 10px; color: #e8e8e8; font-size: 13px; font-family: inherit; }
+    .fill-log-edit-input:focus { outline: none; }
+    .fill-log-edit-select { flex: 1; background: #111; border: 1px solid #4a9eff; border-radius: 6px; padding: 7px 10px; color: #e8e8e8; font-size: 13px; font-family: inherit; }
+    .fill-log-edit-select:focus { outline: none; }
+    .fill-log-apply-btn { background: #4a9eff; color: #fff; border: none; border-radius: 6px; padding: 7px 16px; font-size: 13px; cursor: pointer; }
+    .fill-log-cancel-btn { background: #2a2a2a; color: #666; border: none; border-radius: 6px; padding: 7px 12px; font-size: 13px; cursor: pointer; }
+    .fill-log-applying { font-size: 11px; color: #4a9eff; margin-top: 4px; }
+
+    /* Review banner */
+    .review-banner { background: #1a1200; border-bottom: 2px solid #d97706; padding: 14px 24px; display: flex; align-items: center; gap: 16px; flex-shrink: 0; }
+    .review-banner-text { flex: 1; }
+    .review-banner-title { font-size: 14px; font-weight: 600; color: #fbbf24; }
+    .review-banner-sub { font-size: 12px; color: #92400e; margin-top: 2px; }
+    .btn-submit-job { background: #065f46; color: #34d399; border: 1px solid #064e3b; border-radius: 6px; padding: 9px 22px; font-size: 13px; font-weight: 600; cursor: pointer; transition: opacity 0.15s; }
+    .btn-submit-job:hover { opacity: 0.85; }
+    .btn-skip-job { background: #2a2a2a; color: #888; border: none; border-radius: 6px; padding: 9px 18px; font-size: 13px; cursor: pointer; transition: opacity 0.15s; }
+    .btn-skip-job:hover { opacity: 0.85; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="brand">PersonalApply</div>
+  <div class="tabs" id="tabs">
+    <!-- worker tabs inserted here dynamically -->
+    <button class="tab active" id="tab-applications" data-panel="panel-applications">Applications</button>
+    <button class="tab" id="tab-profile" data-panel="panel-profile">Profile</button>
+    <button class="tab" id="tab-jobs" data-panel="panel-jobs">Jobs</button>
+  </div>
+</header>
+
+<!-- ── Jobs panel ── -->
+<div class="panel active" id="panel-jobs">
+  <div class="job-add-box">
+    <h3>Add application</h3>
+    <div class="job-url-row">
+      <input class="field-input" id="job-url" placeholder="Paste Greenhouse job URL…" style="flex:1">
+      <span class="platform-tag" id="job-platform-tag" style="display:none">greenhouse</span>
+    </div>
+    <div class="job-fields-row">
+      <div class="field-row"><label style="font-size:12px;color:#888;display:block;margin-bottom:4px">Company</label>
+        <input class="field-input" id="job-company" placeholder="e.g. Acme Corp"></div>
+      <div class="field-row"><label style="font-size:12px;color:#888;display:block;margin-bottom:4px">Job title</label>
+        <input class="field-input" id="job-title" placeholder="e.g. Software Engineer"></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px">
+      <button class="btn btn-primary" id="btn-add-job">Queue application</button>
+      <span id="jobs-add-status"></span>
+    </div>
+  </div>
+
+  <div class="jobs-section-label" style="margin-top:4px">Queue</div>
+  <div class="job-list" id="job-list"><div style="color:#444;font-size:13px">No jobs queued yet.</div></div>
+
+  <div class="jobs-section-label" style="margin-top:8px">Workers</div>
+  <div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:12px">
+    <div style="display:flex;gap:10px;align-items:center">
+      <input class="field-input" id="new-worker-name" placeholder="Worker name (e.g. worker-2)" style="width:220px">
+      <button class="btn btn-primary" id="btn-spawn-worker" style="font-size:13px;padding:8px 16px">Start worker</button>
+      <span id="spawn-status" style="font-size:12px;color:#555"></span>
+    </div>
+    <div id="worker-list" style="display:flex;flex-direction:column;gap:8px"></div>
+  </div>
+</div>
+
+<!-- ── Applications panel ── -->
+<div class="panel" id="panel-applications" style="flex-direction:column;overflow-y:auto;padding:28px 32px;gap:16px;max-width:1000px;width:100%;margin:0 auto">
+  <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+    <input class="field-input" id="app-filter-company" placeholder="Search company…" style="width:180px">
+    <select class="field-input" id="app-filter-status" style="width:160px">
+      <option value="">All statuses</option>
+      <option value="queued">Queued</option>
+      <option value="claimed">Claimed</option>
+      <option value="applying">Applying</option>
+      <option value="review">Review</option>
+      <option value="submitted">Submitted</option>
+      <option value="failed">Failed</option>
+      <option value="skipped">Skipped</option>
+      <option value="blocked_waiting_for_user">Waiting</option>
+    </select>
+    <button class="btn btn-secondary" style="font-size:12px;padding:7px 14px" onclick="loadApplications()">Refresh</button>
+    <span id="app-count" style="font-size:12px;color:#555;margin-left:auto"></span>
+  </div>
+  <div id="app-table-wrap">
+    <table id="app-table" style="width:100%;border-collapse:collapse;font-size:13px">
+      <thead>
+        <tr style="border-bottom:1px solid #2a2a2a;color:#666;text-align:left">
+          <th style="padding:8px 10px">Company</th>
+          <th style="padding:8px 10px">Role</th>
+          <th style="padding:8px 10px">Status</th>
+          <th style="padding:8px 10px">Added</th>
+          <th style="padding:8px 10px">Link</th>
+          <th style="padding:8px 10px"></th>
+        </tr>
+      </thead>
+      <tbody id="app-tbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ── Profile panel ── -->
+<div class="panel" id="panel-profile">
+  <div class="profile-grid">
+    <div style="display:flex;flex-direction:column;gap:16px;">
+      <div class="profile-section">
+        <h3>Personal</h3>
+        <div class="field-row-2">
+          <div class="field-row"><label>First name</label><input class="field-input" id="pf-first_name" placeholder="Jane"></div>
+          <div class="field-row"><label>Last name</label><input class="field-input" id="pf-last_name" placeholder="Doe"></div>
+        </div>
+        <div class="field-row"><label>Email</label><input class="field-input" id="pf-email" type="email" placeholder="jane@example.com"></div>
+        <div class="field-row"><label>Phone</label><input class="field-input" id="pf-phone" placeholder="+1 555 000 0000"></div>
+        <div class="field-row"><label>Pronouns</label><input class="field-input" id="pf-pronouns" placeholder="she/her"></div>
+      </div>
+      <div class="profile-section">
+        <h3>Online</h3>
+        <div class="field-row"><label>LinkedIn URL</label><input class="field-input" id="pf-linkedin" placeholder="https://linkedin.com/in/..."></div>
+        <div class="field-row"><label>GitHub URL</label><input class="field-input" id="pf-github" placeholder="https://github.com/..."></div>
+        <div class="field-row"><label>Website / Portfolio</label><input class="field-input" id="pf-website" placeholder="https://..."></div>
+      </div>
+      <div class="profile-section">
+        <h3>Location</h3>
+        <div class="field-row"><label>City</label><input class="field-input" id="pf-city" placeholder="San Francisco"></div>
+        <div class="field-row-2">
+          <div class="field-row"><label>State</label><input class="field-input" id="pf-state" placeholder="CA"></div>
+          <div class="field-row"><label>Zip</label><input class="field-input" id="pf-zip" placeholder="94105"></div>
+        </div>
+        <div class="field-row"><label>Country</label><input class="field-input" id="pf-country" placeholder="United States"></div>
+        <div class="field-row"><label>Full location (city, state)</label><input class="field-input" id="pf-location" placeholder="San Francisco, CA"></div>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:16px;">
+      <div class="profile-section">
+        <h3>Work</h3>
+        <div class="field-row"><label>Current job title</label><input class="field-input" id="pf-job_title" placeholder="Software Engineer"></div>
+        <div class="field-row-2">
+          <div class="field-row"><label>Open to relocate?</label>
+            <select class="field-input" id="pf-relocation"><option value="yes">Yes</option><option value="no">No</option></select>
+          </div>
+          <div class="field-row"><label>Available start date</label><input class="field-input" id="pf-start_date" placeholder="2025-09-01"></div>
+        </div>
+        <div class="field-row-2">
+          <div class="field-row"><label>Authorized to work in US?</label>
+            <select class="field-input" id="pf-work_auth"><option value="yes">Yes</option><option value="no">No</option></select>
+          </div>
+          <div class="field-row"><label>Need sponsorship?</label>
+            <select class="field-input" id="pf-sponsorship"><option value="no">No</option><option value="yes">Yes</option></select>
+          </div>
+        </div>
+      </div>
+      <div class="profile-section">
+        <h3>Education</h3>
+        <div class="field-row"><label>School / University</label><input class="field-input" id="pf-school" placeholder="MIT"></div>
+        <div class="field-row-2">
+          <div class="field-row"><label>Degree</label><input class="field-input" id="pf-degree" placeholder="Bachelor's"></div>
+          <div class="field-row"><label>Major / Field of study</label><input class="field-input" id="pf-discipline" placeholder="Computer Science"></div>
+        </div>
+        <div class="field-row"><label>GPA (optional)</label><input class="field-input" id="pf-gpa" placeholder="3.8"></div>
+      </div>
+      <div class="profile-section">
+        <h3>Resume</h3>
+        <div class="resume-zone" id="resume-zone">
+          <p>Click to upload resume (PDF, DOC)</p>
+          <div class="filename" id="resume-filename" style="display:none"></div>
+        </div>
+        <input type="file" id="resume-file-input" accept=".pdf,.doc,.docx">
+      </div>
+      <div class="profile-section">
+        <h3>Behaviour</h3>
+        <div class="field-row">
+          <label style="display:flex;align-items:center;gap:10px;cursor:pointer;user-select:none">
+            <span class="toggle-track" id="toggle-auto-submit" style="display:inline-flex;width:36px;height:20px;border-radius:10px;background:#2a2a2a;border:1px solid #3a3a3a;flex-shrink:0;position:relative;cursor:pointer;transition:background 0.2s">
+              <span id="toggle-auto-submit-knob" style="position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:#555;transition:left 0.2s,background 0.2s"></span>
+            </span>
+            <span>
+              <span style="font-size:13px;color:#ccc;display:block">Auto-submit</span>
+              <span style="font-size:11px;color:#555">When on, the worker submits the form automatically after filling it. When off, it pauses so you can review and submit manually from this UI.</span>
+            </span>
+          </label>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="save-row">
+    <button class="btn-save" id="btn-save-profile">Save profile</button>
+    <span id="profile-status"></span>
+  </div>
+</div>
+
+<!-- ── Worker panels injected here ── -->
+
+<script>
+const API = '';
+let workers = [];
+// Per-worker state: pending questions and locally-tracked answered questions
+const workerState = {};   // { workerId: { pending: [], answered: [] } }
+const fillLogs = {};      // { workerId: [{label, value, source}] }
+let selectedItem = null;  // { workerId, id, isAnswered }
+
+const PRESET_CATEGORIES = ['Profile', 'Diversity', 'Work Experience', 'Compensation', 'Relocation', 'Work Auth', 'Education'];
+
+// ── Utilities ──────────────────────────────────────────────────────────────
+
+function esc(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function $(id) { return document.getElementById(id); }
+
+// ── Tabs ────────────────────────────────────────────────────────────────────
+
+function switchTab(panelId) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.panel === panelId));
+  document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === panelId));
+}
+
+// Tab clicks wired in Init after all panels exist
+
+// ── Profile ─────────────────────────────────────────────────────────────────
+
+const PROFILE_FIELDS = [
+  'first_name','last_name','email','phone','pronouns',
+  'linkedin','github','website',
+  'city','state','zip','country','location',
+  'job_title','relocation','start_date','work_auth','sponsorship',
+  'school','degree','discipline','gpa',
+];
+
+let autoSubmitEnabled = false;
+
+function setAutoSubmitToggle(val) {
+  autoSubmitEnabled = !!val;
+  const track = $('toggle-auto-submit');
+  const knob  = $('toggle-auto-submit-knob');
+  if (!track) return;
+  track.style.background = val ? '#4a9eff' : '#2a2a2a';
+  knob.style.left = val ? '18px' : '2px';
+  knob.style.background = val ? '#fff' : '#555';
+}
+
+$('toggle-auto-submit').addEventListener('click', () => {
+  setAutoSubmitToggle(!autoSubmitEnabled);
+});
+
+async function loadProfile() {
+  try {
+    const data = await fetch(`${API}/profile`).then(r => r.json());
+    PROFILE_FIELDS.forEach(k => {
+      const el = $('pf-' + k);
+      if (el && data[k] !== undefined) el.value = data[k];
+    });
+    if (data.resume_path) {
+      $('resume-filename').textContent = data.resume_path.split('/').pop();
+      $('resume-filename').style.display = '';
+      $('resume-zone').classList.add('has-file');
+    }
+    setAutoSubmitToggle(data.auto_submit === true);
+  } catch (_) {}
+}
+
+$('btn-save-profile').addEventListener('click', async () => {
+  const payload = { auto_submit: autoSubmitEnabled };
+  PROFILE_FIELDS.forEach(k => {
+    const el = $('pf-' + k);
+    if (el) payload[k] = el.value;
+  });
+  try {
+    await fetch(`${API}/profile`, { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+    $('profile-status').textContent = 'Saved.';
+    setTimeout(() => { $('profile-status').textContent = ''; }, 2000);
+  } catch(e) {
+    $('profile-status').style.color = '#e53e3e';
+    $('profile-status').textContent = 'Error saving.';
+  }
+});
+
+$('resume-zone').addEventListener('click', () => $('resume-file-input').click());
+
+$('resume-file-input').addEventListener('change', async e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const form = new FormData();
+  form.append('file', file);
+  try {
+    const res = await fetch(`${API}/profile/resume`, { method: 'POST', body: form });
+    const data = await res.json();
+    $('resume-filename').textContent = data.filename;
+    $('resume-filename').style.display = '';
+    $('resume-zone').classList.add('has-file');
+  } catch(e) {
+    alert('Resume upload failed: ' + e.message);
+  }
+});
+
+// ── Workers ─────────────────────────────────────────────────────────────────
+
+async function loadWorkers() {
+  try {
+    workers = await fetch(`${API}/workers`).then(r => r.json());
+    syncWorkerTabs();
+    renderWorkerList();
+  } catch(_) {}
+}
+async function loadWorkersAll() { return loadWorkers(); }
+
+function syncWorkerTabs() {
+  const tabs = $('tabs');
+  const anchor = $('tab-applications'); // worker tabs insert before this
+
+  // Remove tabs for dead/gone workers
+  const liveIds = new Set(workers.filter(w => w.status !== 'dead').map(w => 'panel-worker-' + w.id));
+  tabs.querySelectorAll('.tab[data-panel^="panel-worker-"]').forEach(t => {
+    if (!liveIds.has(t.dataset.panel)) t.remove();
+  });
+
+  workers.forEach(w => {
+    if (w.status === 'dead') return; // skip dead workers entirely
+
+    const wid = String(w.id);
+    if (!workerState[wid]) workerState[wid] = { pending: [], answered: [] };
+
+    const panelId = 'panel-worker-' + wid;
+    if (!$(panelId)) {
+      const panel = document.createElement('div');
+      panel.className = 'panel';
+      panel.id = panelId;
+      panel.style.flexDirection = 'column';
+      panel.innerHTML = `
+        <div id="review-banner-${wid}" class="review-banner" style="display:none">
+          <div class="review-banner-text">
+            <div class="review-banner-title">Ready to review &amp; submit</div>
+            <div class="review-banner-sub" id="review-banner-job-${wid}">The application form is open in the browser. Check the answers, edit anything directly in the browser, then submit or skip below.</div>
+          </div>
+          <button class="btn-submit-job" onclick="sendJobSignal('${wid}', 'submit')">Submit application</button>
+          <button class="btn-skip-job" onclick="sendJobSignal('${wid}', 'skip')">Skip</button>
+        </div>
+        <div class="worker-panel">
+          <div class="sidebar" id="sidebar-${wid}">
+            <div class="sidebar-section-header">Needs answer <span class="tab-badge zero" id="badge-${wid}">0</span></div>
+            <div class="sidebar-list" id="pending-list-${wid}"></div>
+            <div class="answered-section" id="answered-section-${wid}" style="display:none">
+              <div class="sidebar-section-header" style="color:#34d399">
+                Answered — click to re-edit
+                <button class="clear-btn" data-worker="${wid}">Clear</button>
+              </div>
+              <div id="answered-list-${wid}"></div>
+            </div>
+          </div>
+          <div id="detail-${wid}" style="flex:1;overflow-y:auto;padding:28px 32px;display:flex;flex-direction:column;gap:18px;">
+            <div class="detail-empty">Select a question from the sidebar</div>
+          </div>
+        </div>`;
+      document.body.appendChild(panel);
+      panel.querySelector('.clear-btn').addEventListener('click', e => {
+        const w2 = e.target.dataset.worker;
+        workerState[w2].answered = [];
+        renderWorkerSidebar(w2);
+        if (selectedItem?.workerId === w2 && selectedItem?.isAnswered) {
+          selectedItem = null; renderDetail(w2);
+        }
+      });
+    }
+
+    // Create tab if missing, always insert before Applications so Jobs stays last
+    let tab = document.querySelector(`.tab[data-panel="${panelId}"]`);
+    if (!tab) {
+      tab = document.createElement('button');
+      tab.className = 'tab';
+      tab.dataset.panel = panelId;
+      tab.addEventListener('click', async () => {
+        switchTab(panelId);
+        // Load fill log immediately if worker is in review
+        const w2 = workers.find(x => String(x.id) === wid);
+        if (w2?.status === 'paused' && w2?.current_job_id && !fillLogs[wid]?.length) {
+          try {
+            fillLogs[wid] = await fetch(`${API}/workers/${wid}/fill-log`).then(r => r.json());
+            if (!selectedItem || selectedItem.workerId !== wid) renderDetail(wid);
+          } catch(_) {}
+        }
+      });
+      tabs.insertBefore(tab, anchor);
+    }
+
+    const pending = (workerState[wid]?.pending || []).length;
+    const sc = w.status === 'waiting_for_user' ? 'waiting' : w.status === 'paused' ? 'paused' : w.status === 'idle' ? 'idle' : 'working';
+    const sl = w.status === 'waiting_for_user' ? 'waiting' : (w.status || 'idle');
+    tab.innerHTML = `${esc(w.name)} <span class="tab-badge ${pending===0?'zero':''}">${pending}</span> <span class="tab-status ${sc}">${esc(sl)}</span>`;
+
+    // Show/hide review banner
+    updateReviewBanner(wid, w);
+  });
+}
+
+// ── Polling ──────────────────────────────────────────────────────────────────
+
+async function poll() {
+  try {
+    await loadWorkersAll();
+    const questions = await fetch(`${API}/questions/blocked`).then(r => r.json());
+
+    // Fetch fill logs for workers in paused/review state
+    await Promise.all(workers
+      .filter(w => w.status === 'paused' && w.current_job_id)
+      .map(async w => {
+        const wid = String(w.id);
+        try {
+          fillLogs[wid] = await fetch(`${API}/workers/${wid}/fill-log`).then(r => r.json());
+          // Re-render fill log if nothing is selected
+          if (!selectedItem || selectedItem.workerId !== wid) {
+            renderFillLog(wid);
+          }
+        } catch(_) {}
+      })
+    );
+
+    // Group by worker
+    const byWorker = {};
+    questions.forEach(q => {
+      const wid = String(q.worker_id);
+      if (!byWorker[wid]) byWorker[wid] = [];
+      byWorker[wid].push(q);
+    });
+
+    workers.forEach(w => {
+      const wid = String(w.id);
+      if (!workerState[wid]) workerState[wid] = { pending: [], answered: [] };
+      const fresh = byWorker[wid] || [];
+      const prevIds = new Set(workerState[wid].pending.map(q => String(q.id)));
+      const freshIds = new Set(fresh.map(q => String(q.id)));
+
+      const hadNone = workerState[wid].pending.length === 0;
+      workerState[wid].pending = fresh;
+
+      // Auto-switch to worker tab when new questions arrive
+      if (hadNone && fresh.length > 0) {
+        switchTab('panel-worker-' + wid);
+        // Auto-select first question
+        if (!selectedItem) {
+          selectedItem = { workerId: wid, id: String(fresh[0].id), isAnswered: false };
+        }
+      }
+
+      // If selected question was just resolved (no longer pending), move to answered
+      if (selectedItem?.workerId === wid && !selectedItem.isAnswered) {
+        if (!freshIds.has(String(selectedItem.id))) {
+          // It was answered externally — deselect
+          selectedItem = null;
+          renderDetail(wid);
+        }
+      }
+
+      renderWorkerSidebar(wid);
+    });
+
+    loadApplications();
+  } catch(_) {}
+}
+
+// ── Sidebar rendering ────────────────────────────────────────────────────────
+
+function renderWorkerSidebar(wid) {
+  const state = workerState[wid];
+  if (!state) return;
+
+  const badge = $('badge-' + wid);
+  const pendingList = $('pending-list-' + wid);
+  const answeredSection = $('answered-section-' + wid);
+  const answeredList = $('answered-list-' + wid);
+  if (!pendingList) return;
+
+  if (badge) {
+    badge.textContent = state.pending.length;
+    badge.className = 'tab-badge' + (state.pending.length === 0 ? ' zero' : '');
+  }
+
+  // Render pending
+  if (state.pending.length === 0) {
+    pendingList.innerHTML = '<div class="sidebar-empty">No pending questions</div>';
+  } else {
+    pendingList.innerHTML = state.pending.map(q => {
+      const isActive = selectedItem?.id === String(q.id) && !selectedItem?.isAnswered;
+      return `<div class="q-item ${isActive ? 'active' : ''}" data-id="${esc(String(q.id))}" data-worker="${esc(wid)}">
+        <div class="q-company">${esc(q.company)} · ${esc(q.title)}</div>
+        <div class="q-text">${esc(q.raw_text)}</div>
+        <div class="q-meta">
+          ${q.required ? '<span class="q-badge required">required</span>' : ''}
+          ${q.field_type ? `<span class="q-badge type">${esc(q.field_type)}</span>` : ''}
+        </div>
+      </div>`;
+    }).join('');
+    pendingList.querySelectorAll('.q-item').forEach(item => {
+      item.addEventListener('click', () => {
+        selectedItem = { workerId: wid, id: item.dataset.id, isAnswered: false };
+        renderWorkerSidebar(wid);
+        renderDetail(wid);
+        switchTab('panel-worker-' + wid);
+      });
+    });
+  }
+
+  // Render answered
+  if (state.answered.length === 0) {
+    if (answeredSection) answeredSection.style.display = 'none';
+  } else {
+    if (answeredSection) answeredSection.style.display = '';
+    answeredList.innerHTML = state.answered.map(a => {
+      const isActive = selectedItem?.id === a.id && selectedItem?.isAnswered;
+      return `<div class="q-item answered-item ${isActive ? 'active' : ''}" data-id="${esc(a.id)}" data-worker="${esc(wid)}" data-answered>
+        <div class="q-company">${esc(a.company)} · ${esc(a.title)}</div>
+        <div class="q-text">${esc(a.raw_text)}</div>
+        <div class="q-meta"><span class="q-badge answered">✓ answered</span></div>
+      </div>`;
+    }).join('');
+    answeredList.querySelectorAll('.q-item').forEach(item => {
+      item.addEventListener('click', () => {
+        selectedItem = { workerId: wid, id: item.dataset.id, isAnswered: true };
+        renderWorkerSidebar(wid);
+        renderDetail(wid);
+        switchTab('panel-worker-' + wid);
+      });
+    });
+  }
+}
+
+// ── Detail rendering ─────────────────────────────────────────────────────────
+
+function renderDetail(wid) {
+  const detail = $('detail-' + wid);
+  if (!detail) return;
+
+  if (!selectedItem || selectedItem.workerId !== wid) {
+    renderFillLog(wid);
+    return;
+  }
+
+  const state = workerState[wid];
+  let q, isAnswered;
+  if (selectedItem.isAnswered) {
+    q = state.answered.find(a => a.id === selectedItem.id);
+    isAnswered = true;
+  } else {
+    q = state.pending.find(p => p.id === selectedItem.id);
+    isAnswered = false;
+  }
+  if (!q) {
+    detail.innerHTML = '<div class="detail-empty">Select a question to answer it</div>';
+    return;
+  }
+
+  const hasSimilar = q.similar_answers && q.similar_answers.length > 0;
+
+  detail.innerHTML = `
+    <div class="detail-block">
+      <div class="detail-company">${esc(q.company)}</div>
+      <div class="detail-jobtitle">${esc(q.title)}</div>
+      <div class="detail-question">${esc(q.raw_text)}</div>
+      ${q.required ? '<div class="detail-required">⚠ Required — cannot be skipped</div>' : ''}
+    </div>
+
+    ${isAnswered ? `<div class="answered-banner">
+      <span>✓ Your answer: <strong>${esc(q.answeredText || '')}</strong></span>
+      <span class="answered-edit-note">Edit below to submit a different answer.</span>
+    </div>` : ''}
+
+    ${hasSimilar ? `<div>
+      <div class="section-label">Similar saved answers</div>
+      <div class="similar-list">
+        ${q.similar_answers.map(a => `
+          <div class="similar-item" data-answer="${esc(a.answer_text)}">
+            <div class="similar-meta">${esc(a.title)} · ${esc(a.category)}</div>
+            <div class="similar-text">${esc(a.answer_text)}</div>
+          </div>`).join('')}
+      </div>
+    </div>` : ''}
+
+    <div>
+      <div class="section-label">Your answer</div>
+      ${buildAnswerInput(q, isAnswered ? q.answeredText : '')}
+    </div>
+
+    <div>
+      <label class="save-template-row">
+        <input type="checkbox" id="save-tmpl-cb" ${isAnswered ? '' : ''}>
+        Remember this answer as a template
+      </label>
+      <div class="template-fields" id="tmpl-fields">
+        <input class="tmpl-input" id="tmpl-title" placeholder="Template title (e.g. Comp expectations)">
+        <div class="section-label" style="margin-top:4px;margin-bottom:4px;">Category</div>
+        <div class="cat-picker" id="cat-picker">
+          ${PRESET_CATEGORIES.map(c => `<button class="cat-btn" data-cat="${esc(c)}">${esc(c)}</button>`).join('')}
+          <button class="cat-btn" data-cat="__custom">Custom…</button>
+        </div>
+        <input class="tmpl-input" id="tmpl-category" placeholder="Custom category name" style="display:none">
+        <input class="tmpl-input" id="tmpl-tags" placeholder="Tags — comma separated (optional)">
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn btn-primary" id="btn-submit-answer">Submit answer</button>
+      ${!isAnswered ? `
+        <button class="btn btn-secondary" id="btn-skip-once" ${q.required ? 'disabled title="Required field"' : ''}>Skip once</button>
+        <button class="btn btn-ghost" id="btn-autoskip" ${q.required ? 'disabled title="Required field"' : ''}>Auto-skip always</button>
+      ` : ''}
+    </div>
+
+    <div id="status-bar"></div>
+  `;
+
+  // Category picker
+  const catPicker = detail.querySelector('#cat-picker');
+  const catInput = detail.querySelector('#tmpl-category');
+  let selectedCat = '';
+  catPicker.querySelectorAll('.cat-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      catPicker.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      if (btn.dataset.cat === '__custom') {
+        catInput.style.display = '';
+        catInput.focus();
+        selectedCat = '';
+      } else {
+        catInput.style.display = 'none';
+        selectedCat = btn.dataset.cat;
+        catInput.value = btn.dataset.cat;
+      }
+    });
+  });
+
+  // Template checkbox toggle
+  detail.querySelector('#save-tmpl-cb').addEventListener('change', e => {
+    detail.querySelector('#tmpl-fields').style.display = e.target.checked ? 'flex' : 'none';
+  });
+
+  // Similar answer click
+  detail.querySelectorAll('.similar-item').forEach(item => {
+    item.addEventListener('click', () => {
+      detail.querySelectorAll('.similar-item').forEach(i => i.classList.remove('selected'));
+      item.classList.add('selected');
+      setAnswerValue(item.dataset.answer);
+    });
+  });
+
+  // React Select wiring
+  wireReactSelect(detail);
+
+  // Buttons
+  detail.querySelector('#btn-submit-answer')?.addEventListener('click', () => submitAnswer(q, wid));
+  detail.querySelector('#btn-skip-once')?.addEventListener('click', () => skipQuestion(q, wid));
+  detail.querySelector('#btn-autoskip')?.addEventListener('click', () => autoSkipQuestion(q, wid));
+
+  // Focus first input
+  (detail.querySelector('.rs-search') || detail.querySelector('#answer-textarea'))?.focus();
+}
+
+// ── Answer input builder ─────────────────────────────────────────────────────
+
+function buildAnswerInput(q, prefill) {
+  const ft = q.field_type || 'text';
+  const opts = q.options || [];
+  const pre = esc(prefill || '');
+
+  if (ft === 'select' && opts.length > 0) {
+    const optHtml = opts.map(o => `<option value="${esc(o)}" ${prefill===o?'selected':''}>${esc(o)}</option>`).join('');
+    return `<select id="answer-select"><option value="">— choose one —</option>${optHtml}</select>`;
+  }
+  if (ft === 'radio' && opts.length > 0) {
+    return `<div class="radio-group">${opts.map((o,i) => `
+      <div class="radio-row">
+        <input type="radio" name="answer-radio" id="radio-${i}" value="${esc(o)}" ${prefill===o?'checked':''}>
+        <label for="radio-${i}">${esc(o)}</label>
+      </div>`).join('')}</div>`;
+  }
+  if (ft === 'react_select') {
+    if (opts.length > 0) {
+      return `<div class="rs-wrapper">
+        <input class="rs-search" id="rs-search" type="text" placeholder="Search options…" autocomplete="off" value="${pre}">
+        <div class="rs-dropdown" id="rs-dropdown">
+          ${opts.map(o=>`<div class="rs-option ${prefill===o?'sel':''}" data-value="${esc(o)}">${esc(o)}</div>`).join('')}
+        </div>
+        <input type="hidden" id="rs-value" value="${pre}">
+      </div>`;
+    }
+    return `<input id="answer-textarea" type="text" class="rs-search" placeholder="Type your answer…" style="width:100%" value="${pre}">`;
+  }
+  if (ft === 'checkbox') {
+    return `<div class="radio-group">
+      <div class="radio-row"><input type="radio" name="answer-radio" id="radio-yes" value="yes" ${prefill==='yes'?'checked':''}><label for="radio-yes">Yes</label></div>
+      <div class="radio-row"><input type="radio" name="answer-radio" id="radio-no" value="no" ${prefill==='no'?'checked':''}><label for="radio-no">No</label></div>
+    </div>`;
+  }
+  return `<textarea id="answer-textarea" placeholder="Type your answer here…">${esc(prefill||'')}</textarea>`;
+}
+
+function getAnswerValue() {
+  const sel = $('answer-select'); if (sel) return sel.value.trim();
+  const checked = document.querySelector('input[name="answer-radio"]:checked'); if (checked) return checked.value.trim();
+  const rsVal = $('rs-value'); if (rsVal) return rsVal.value.trim();
+  const ta = $('answer-textarea'); if (ta) return ta.value.trim();
+  return '';
+}
+
+function setAnswerValue(value) {
+  const sel = $('answer-select'); if (sel) { sel.value = value; return; }
+  const radio = document.querySelector(`input[name="answer-radio"][value="${CSS.escape(value)}"]`); if (radio) { radio.checked = true; return; }
+  const rsVal = $('rs-value'), rsSearch = $('rs-search');
+  if (rsVal) { rsVal.value = value; if (rsSearch) rsSearch.value = value; return; }
+  const ta = $('answer-textarea'); if (ta) ta.value = value;
+}
+
+function wireReactSelect(container) {
+  const rsSearch = container.querySelector('#rs-search');
+  const rsDropdown = container.querySelector('#rs-dropdown');
+  if (!rsSearch || !rsDropdown) return;
+  rsSearch.addEventListener('focus', () => rsDropdown.classList.add('open'));
+  rsSearch.addEventListener('input', () => {
+    const q = rsSearch.value.toLowerCase();
+    rsDropdown.querySelectorAll('.rs-option').forEach(opt => {
+      opt.style.display = opt.dataset.value.toLowerCase().includes(q) ? '' : 'none';
+    });
+    rsDropdown.classList.add('open');
+  });
+  rsDropdown.querySelectorAll('.rs-option').forEach(opt => {
+    opt.addEventListener('mousedown', e => {
+      e.preventDefault();
+      const val = opt.dataset.value;
+      const rv = container.querySelector('#rs-value');
+      if (rv) rv.value = val;
+      rsSearch.value = val;
+      rsDropdown.querySelectorAll('.rs-option').forEach(o => o.classList.remove('sel'));
+      opt.classList.add('sel');
+      rsDropdown.classList.remove('open');
+    });
+  });
+  document.addEventListener('click', e => {
+    if (!rsSearch.contains(e.target) && !rsDropdown.contains(e.target)) rsDropdown.classList.remove('open');
+  });
+}
+
+// ── Submit / Skip ────────────────────────────────────────────────────────────
+
+function setStatus(wid, msg, level) {
+  const el = $('status-bar');
+  if (!el) return;
+  el.style.color = level === 'error' ? '#e53e3e' : level === 'warn' ? '#d69e2e' : '#68d391';
+  el.textContent = msg;
+}
+
+function setLoading(on) {
+  const btn = $('btn-submit-answer'); if (!btn) return;
+  btn.disabled = on;
+  btn.innerHTML = on ? '<span class="spinner"></span>Submitting…' : 'Submit answer';
+}
+
+async function submitAnswer(q, wid) {
+  const text = getAnswerValue();
+  if (!text) { setStatus(wid, 'Enter an answer first.', 'warn'); return; }
+
+  const saveTmpl = $('save-tmpl-cb')?.checked;
+  const tmplTitle = $('tmpl-title')?.value.trim() || null;
+  const catInput = $('tmpl-category');
+  const tmplCategory = catInput?.style.display !== 'none' ? catInput?.value.trim() : (catInput?.value.trim() || null);
+  const tagsRaw = $('tmpl-tags')?.value.trim() || '';
+  const tmplTags = tagsRaw ? tagsRaw.split(',').map(t => t.trim()).filter(Boolean) : null;
+
+  if (saveTmpl && (!tmplTitle || !tmplCategory)) {
+    setStatus(wid, 'Template title and category are required.', 'warn');
+    return;
+  }
+
+  setLoading(true);
+  try {
+    const res = await fetch(`${API}/questions/${q.id}/answer`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        worker_id: q.worker_id,
+        final_submitted_text: text,
+        answer_template_id: null,
+        save_as_template: saveTmpl,
+        template_title: tmplTitle,
+        template_category: tmplCategory,
+        template_tags: tmplTags,
+      }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      setStatus(wid, `Error: ${err.detail || res.statusText}`, 'error');
+      setLoading(false);
+      return;
+    }
+
+    const state = workerState[wid];
+    const alreadyAnswered = state.answered.findIndex(a => a.id === q.id);
+    if (alreadyAnswered >= 0) {
+      // Re-answer: update in place, stay on this item
+      state.answered[alreadyAnswered] = { ...state.answered[alreadyAnswered], answeredText: text };
+      renderWorkerSidebar(wid);
+      renderDetail(wid);
+    } else {
+      // First time answering: move from pending to answered, advance to next
+      state.answered.push({ ...q, answeredText: text });
+      state.pending = state.pending.filter(p => p.id !== q.id);
+      const next = state.pending[0];
+      selectedItem = next ? { workerId: wid, id: next.id, isAnswered: false } : null;
+      renderWorkerSidebar(wid);
+      renderDetail(wid);
+    }
+  } catch(e) {
+    setStatus(wid, `Network error: ${e.message}`, 'error');
+    setLoading(false);
+  }
+}
+
+async function skipQuestion(q, wid) {
+  setLoading(true);
+  try {
+    const res = await fetch(`${API}/questions/${q.id}/skip`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ worker_id: q.worker_id, reason: 'skipped from UI' }),
+    });
+    if (!res.ok) { setLoading(false); return; }
+
+    const state = workerState[wid];
+    state.pending = state.pending.filter(p => p.id !== q.id);
+    const next = state.pending[0];
+    selectedItem = next ? { workerId: wid, id: next.id, isAnswered: false } : null;
+    renderWorkerSidebar(wid);
+    renderDetail(wid);
+  } catch(e) {
+    setLoading(false);
+  }
+}
+
+async function autoSkipQuestion(q, wid) {
+  setLoading(true);
+  try {
+    const res = await fetch(`${API}/questions/${q.id}/answer`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        worker_id: q.worker_id,
+        final_submitted_text: '',
+        save_as_template: true,
+        template_title: null,
+        template_category: null,
+        template_tags: null,
+      }),
+    });
+    if (!res.ok) { setLoading(false); return; }
+
+    const state = workerState[wid];
+    state.pending = state.pending.filter(p => p.id !== q.id);
+    const next = state.pending[0];
+    selectedItem = next ? { workerId: wid, id: next.id, isAnswered: false } : null;
+    renderWorkerSidebar(wid);
+    renderDetail(wid);
+  } catch(e) {
+    setLoading(false);
+  }
+}
+
+// ── Jobs ─────────────────────────────────────────────────────────────────────
+
+const GREENHOUSE_RE = /greenhouse\.io/i;
+
+function detectPlatform(url) {
+  if (GREENHOUSE_RE.test(url)) return 'greenhouse';
+  return null;
+}
+
+function slugify(str) {
+  return str.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+}
+
+$('job-url').addEventListener('input', () => {
+  const url = $('job-url').value.trim();
+  const platform = detectPlatform(url);
+  const tag = $('job-platform-tag');
+  if (platform) {
+    tag.textContent = platform;
+    tag.style.display = '';
+    // Try to extract company from Greenhouse URL: boards.greenhouse.io/companyname/...
+    const m = url.match(/greenhouse\.io\/([^/?#]+)/);
+    if (m && !$('job-company').value) {
+      $('job-company').value = m[1].replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+    }
+  } else {
+    tag.style.display = 'none';
+  }
+});
+
+$('btn-add-job').addEventListener('click', async () => {
+  const url = $('job-url').value.trim();
+  const company = $('job-company').value.trim();
+  const title = $('job-title').value.trim();
+  const statusEl = $('jobs-add-status');
+
+  if (!url || !company || !title) {
+    statusEl.style.color = '#d69e2e';
+    statusEl.textContent = 'URL, company and title are required.';
+    return;
+  }
+  const platform = detectPlatform(url) || 'greenhouse';
+  const canonical = slugify(company) + '::' + slugify(title) + '::' + url;
+
+  try {
+    const res = await fetch(`${API}/jobs`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ canonical_key: canonical, company, title, platform, source_url: url, status: 'queued' }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      statusEl.style.color = '#e53e3e';
+      statusEl.textContent = err.detail || 'Error adding job.';
+      return;
+    }
+    statusEl.style.color = '#68d391';
+    statusEl.textContent = 'Queued!';
+    $('job-url').value = ''; $('job-company').value = ''; $('job-title').value = '';
+    $('job-platform-tag').style.display = 'none';
+    setTimeout(() => { statusEl.textContent = ''; }, 2000);
+    loadJobs();
+  } catch(e) {
+    statusEl.style.color = '#e53e3e';
+    statusEl.textContent = 'Network error.';
+  }
+});
+
+async function loadJobs() {
+  try {
+    const jobs = await fetch(`${API}/jobs`).then(r => r.json());
+    const list = $('job-list');
+    if (!jobs.length) { list.innerHTML = '<div style="color:#444;font-size:13px">No jobs queued yet.</div>'; return; }
+    list.innerHTML = jobs.map(j => `
+      <div class="job-row">
+        <div class="job-row-info">
+          <div class="job-row-company">${esc(j.company)}</div>
+          <div class="job-row-title">${esc(j.title)}</div>
+          <div class="job-row-url">${esc(j.source_url)}</div>
+        </div>
+        <span class="job-status-tag status-${esc(j.status)}">${esc(j.status.replace(/_/g,' '))}</span>
+        <div class="job-actions">
+          ${j.status === 'failed' || j.status === 'skipped' ?
+            `<button class="btn btn-secondary" style="font-size:12px;padding:6px 12px" onclick="requeueJob('${esc(j.id)}')">Re-queue</button>` : ''}
+          <button class="btn btn-danger" style="font-size:12px;padding:6px 12px" onclick="deleteJob('${esc(j.id)}')">Remove</button>
+        </div>
+      </div>`).join('');
+  } catch(_) {}
+}
+
+async function requeueJob(id) {
+  // Reset status to queued by re-creating — simplest approach is PATCH status
+  // For now just reload; full requeue needs a backend endpoint
+  alert('Re-queue: clear the DB and re-add the link for now. Full re-queue coming soon.');
+}
+
+async function deleteJob(id) {
+  if (!confirm('Remove this job from the queue?')) return;
+  try {
+    await fetch(`${API}/jobs/${id}`, { method: 'DELETE' });
+    loadJobs();
+  } catch(_) {}
+}
+
+// ── Applications table ────────────────────────────────────────────────────────
+
+async function loadApplications() {
+  const company = $('app-filter-company')?.value.trim() || '';
+  const status  = $('app-filter-status')?.value || '';
+  let url = `${API}/jobs?`;
+  if (status)  url += `status=${encodeURIComponent(status)}&`;
+  if (company) url += `company=${encodeURIComponent(company)}&`;
+  try {
+    const jobs = await fetch(url).then(r => r.json());
+    const tbody = $('app-tbody');
+    $('app-count').textContent = `${jobs.length} result${jobs.length !== 1 ? 's' : ''}`;
+    if (!jobs.length) { tbody.innerHTML = `<tr><td colspan="6" style="padding:20px;color:#444;text-align:center">No applications found.</td></tr>`; return; }
+    tbody.innerHTML = jobs.map(j => `
+      <tr style="border-bottom:1px solid #1f1f1f">
+        <td style="padding:10px 10px">${esc(j.company)}</td>
+        <td style="padding:10px 10px;color:#aaa">${esc(j.title)}</td>
+        <td style="padding:10px 10px"><span class="job-status-tag status-${esc(j.status)}">${esc(j.status.replace(/_/g,' '))}</span></td>
+        <td style="padding:10px 10px;color:#666;font-size:12px">${j.lease_expires_at ? new Date(j.lease_expires_at).toLocaleDateString() : '—'}</td>
+        <td style="padding:10px 10px"><a href="${esc(j.source_url)}" target="_blank" style="color:#4a9eff;font-size:12px">Open</a></td>
+        <td style="padding:10px 10px;text-align:right">
+          ${j.status === 'review' ? `<button class="btn btn-primary" style="font-size:11px;padding:5px 10px" onclick="submitJob('${esc(j.id)}')">Submit</button> <button class="btn btn-secondary" style="font-size:11px;padding:5px 10px" onclick="skipJob('${esc(j.id)}')">Skip</button> ` : ''}
+          <button class="btn btn-danger" style="font-size:11px;padding:5px 10px" onclick="deleteJob('${esc(j.id)}')">Remove</button>
+        </td>
+      </tr>`).join('');
+  } catch(e) { console.error(e); }
+}
+
+async function submitJob(id) {
+  if (!confirm('Submit this application now? The worker will click the submit button in the browser.')) return;
+  try {
+    const res = await fetch(`${API}/jobs/${id}/signal`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'submit' }),
+    });
+    if (!res.ok) { alert('Error: ' + res.statusText); return; }
+    loadApplications();
+  } catch(e) { alert('Network error: ' + e.message); }
+}
+
+async function skipJob(id) {
+  if (!confirm('Skip this application?')) return;
+  try {
+    const res = await fetch(`${API}/jobs/${id}/signal`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'skip' }),
+    });
+    if (!res.ok) { alert('Error: ' + res.statusText); return; }
+    loadApplications();
+  } catch(e) { alert('Network error: ' + e.message); }
+}
+
+$('app-filter-company')?.addEventListener('input', loadApplications);
+$('app-filter-status')?.addEventListener('change', loadApplications);
+
+// ── Worker management ────────────────────────────────────────────────────────
+
+function renderWorkerList() {
+  const list = $('worker-list');
+  if (!list) return;
+  if (!workers.length) { list.innerHTML = '<div style="color:#444;font-size:12px">No workers registered.</div>'; return; }
+  list.innerHTML = workers.filter(w => w.status !== 'dead').map(w => {
+    const statusClass = w.status === 'waiting_for_user' ? 'waiting' : w.status === 'idle' ? 'idle' : w.status === 'paused' ? 'paused' : 'working';
+    return `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #1f1f1f">
+      <span style="flex:1;font-size:13px;color:#ccc">${esc(w.name)}</span>
+      <span class="tab-status ${statusClass}">${esc(w.status || 'idle')}</span>
+      ${w.current_stage ? `<span style="font-size:11px;color:#555">${esc(w.current_stage)}</span>` : ''}
+      <button class="btn btn-danger" style="font-size:11px;padding:5px 10px" onclick="stopWorker('${esc(w.id)}','${esc(w.name)}')">Stop</button>
+    </div>`;
+  }).join('') || '<div style="color:#444;font-size:12px">No active workers.</div>';
+}
+
+$('btn-spawn-worker')?.addEventListener('click', async () => {
+  const name = $('new-worker-name').value.trim() || `worker-${Date.now()}`;
+  const statusEl = $('spawn-status');
+  try {
+    const res = await fetch(`${API}/workers/spawn`, {
+      method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({name}),
+    });
+    if (!res.ok) { const e = await res.json().catch(()=>{}); statusEl.style.color='#e53e3e'; statusEl.textContent=e?.detail||'Error'; return; }
+    statusEl.style.color = '#68d391';
+    statusEl.textContent = `Started ${name}`;
+    setTimeout(() => statusEl.textContent = '', 3000);
+    await loadWorkers();
+  } catch(e) { statusEl.style.color='#e53e3e'; statusEl.textContent='Failed: '+e.message; }
+});
+
+async function stopWorker(id, name) {
+  if (!confirm(`Stop worker "${name}"?`)) return;
+  try {
+    await fetch(`${API}/workers/${id}`, { method: 'DELETE' });
+    await loadWorkers();
+  } catch(e) { alert('Error: ' + e.message); }
+}
+
+
+
+// ── Fill log (review panel) ───────────────────────────────────────────────────
+
+function renderFillLog(wid) {
+  const detail = $('detail-' + wid);
+  if (!detail) return;
+  const log = fillLogs[wid] || [];
+
+  if (!log.length) {
+    detail.innerHTML = '<div class="detail-empty">No fill data yet — the bot\'s answers will appear here during review</div>';
+    return;
+  }
+
+  detail.innerHTML = `
+    <div class="detail-block">
+      <div style="font-size:14px;font-weight:600;color:#fff;margin-bottom:4px">Bot's answers — review &amp; edit</div>
+      <div style="font-size:12px;color:#666">Click <strong style="color:#aaa">Edit</strong> on any row to change what the bot wrote. Changes get applied to the form immediately.</div>
+    </div>
+    <div class="detail-block fill-log" id="fill-log-${wid}">
+      <div class="fill-log-header">Field → Answer</div>
+      ${log.map((e, i) => renderFillRow(e, i, wid)).join('')}
+    </div>
+    <div style="font-size:11px;color:#444;padding:4px 0">
+      <span style="background:#1e3a5f;color:#7dd3fc;padding:1px 6px;border-radius:3px;font-size:10px">profile</span> from your profile &nbsp;
+      <span style="background:#064e3b;color:#6ee7b7;padding:1px 6px;border-radius:3px;font-size:10px">template</span> saved answer &nbsp;
+      <span style="background:#4c1d95;color:#c4b5fd;padding:1px 6px;border-radius:3px;font-size:10px">ui</span> you edited it
+    </div>`;
+
+  wireFillLogEdits(wid);
+}
+
+function renderFillRow(e, i, wid) {
+  return `<div class="fill-log-row" id="fill-row-${wid}-${i}" data-index="${i}">
+    <div class="fill-log-top">
+      <span class="fill-log-label" title="${esc(e.label)}">${esc(e.label)}</span>
+      <span class="fill-log-value" id="fill-val-${wid}-${i}">${esc(e.value)}</span>
+      <span class="fill-log-source ${esc(e.source)}">${esc(e.source)}</span>
+      <button class="fill-log-edit-btn" data-row="${i}" data-wid="${esc(wid)}">Edit</button>
+    </div>
+    <div class="fill-log-edit-form" id="fill-edit-form-${wid}-${i}" style="display:none">
+      ${buildFillEditInput(e, i, wid)}
+      <button class="fill-log-apply-btn" data-row="${i}" data-wid="${esc(wid)}">Apply</button>
+      <button class="fill-log-cancel-btn" data-row="${i}" data-wid="${esc(wid)}">Cancel</button>
+    </div>
+    <div class="fill-log-applying" id="fill-applying-${wid}-${i}" style="display:none">Applying…</div>
+  </div>`;
+}
+
+function buildFillEditInput(e, i, wid) {
+  const ft = e.field_type || 'text';
+  const opts = e.options || [];
+  const val = esc(e.value || '');
+  const id = `fill-input-${wid}-${i}`;
+
+  if ((ft === 'select' || ft === 'radio' || ft === 'react_select') && opts.length > 0) {
+    const optsHtml = opts.map(o => `<option value="${esc(o)}" ${e.value===o?'selected':''}>${esc(o)}</option>`).join('');
+    return `<select class="fill-log-edit-select" id="${id}"><option value="">— choose —</option>${optsHtml}</select>`;
+  }
+  if (ft === 'textarea') {
+    return `<textarea class="fill-log-edit-input" id="${id}" rows="3">${val}</textarea>`;
+  }
+  return `<input class="fill-log-edit-input" id="${id}" type="text" value="${val}">`;
+}
+
+function wireFillLogEdits(wid) {
+  const container = $('fill-log-' + wid);
+  if (!container) return;
+
+  container.querySelectorAll('.fill-log-edit-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const i = btn.dataset.row;
+      $(`fill-edit-form-${wid}-${i}`).style.display = 'flex';
+      btn.style.display = 'none';
+      const inp = $(`fill-input-${wid}-${i}`);
+      if (inp) inp.focus();
+    });
+  });
+
+  container.querySelectorAll('.fill-log-cancel-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const i = btn.dataset.row;
+      $(`fill-edit-form-${wid}-${i}`).style.display = 'none';
+      const editBtn = container.querySelector(`.fill-log-edit-btn[data-row="${i}"]`);
+      if (editBtn) editBtn.style.display = '';
+    });
+  });
+
+  container.querySelectorAll('.fill-log-apply-btn').forEach(btn => {
+    btn.addEventListener('click', () => applyFieldOverride(wid, parseInt(btn.dataset.row)));
+  });
+}
+
+async function applyFieldOverride(wid, rowIndex) {
+  const log = fillLogs[wid] || [];
+  const entry = log[rowIndex];
+  if (!entry) return;
+
+  const inp = $(`fill-input-${wid}-${rowIndex}`);
+  if (!inp) return;
+  const newValue = inp.value.trim();
+  if (!newValue) return;
+
+  const applyingEl = $(`fill-applying-${wid}-${rowIndex}`);
+  if (applyingEl) applyingEl.style.display = '';
+
+  try {
+    const res = await fetch(`${API}/workers/${wid}/field-override`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        label: entry.label,
+        field_label: entry.label,
+        answer: newValue,
+        value: newValue,
+        field_type: entry.field_type,
+        options: entry.options || [],
+      }),
+    });
+    if (!res.ok) { alert('Error applying override: ' + res.statusText); return; }
+
+    // Update local fill log
+    log[rowIndex] = { ...entry, value: newValue, source: 'ui' };
+    fillLogs[wid] = log;
+
+    // Re-render the row
+    const rowEl = $(`fill-row-${wid}-${rowIndex}`);
+    if (rowEl) {
+      rowEl.outerHTML = renderFillRow(log[rowIndex], rowIndex, wid);
+      // Re-wire after DOM update
+      wireFillLogEdits(wid);
+    }
+  } catch(e) {
+    alert('Network error: ' + e.message);
+  } finally {
+    if (applyingEl) applyingEl.style.display = 'none';
+  }
+}
+
+// ── Review / Submit ───────────────────────────────────────────────────────────
+
+// Track review state per worker: { jobId, company, title }
+const reviewState = {};
+
+function updateReviewBanner(wid, worker) {
+  const banner = $('review-banner-' + wid);
+  if (!banner) return;
+
+  const wasInReview = !!reviewState[wid];
+  const isInReview = worker.status === 'paused' && worker.current_job_id;
+
+  if (isInReview) {
+    reviewState[wid] = { jobId: String(worker.current_job_id) };
+    banner.style.display = 'flex';
+    // If just entered review, deselect question so fill log shows
+    if (!wasInReview) {
+      if (selectedItem?.workerId === wid) {
+        selectedItem = null;
+        renderDetail(wid);
+      }
+    }
+  } else {
+    const justLeft = wasInReview && !isInReview;
+    delete reviewState[wid];
+    banner.style.display = 'none';
+    if (justLeft) {
+      delete fillLogs[wid];
+      renderDetail(wid);
+    }
+  }
+}
+
+async function sendJobSignal(wid, action) {
+  const state = reviewState[wid];
+  if (!state) { alert('No job in review for this worker.'); return; }
+  const { jobId } = state;
+  if (action === 'submit' && !confirm('Submit this application? The worker will click the submit button in the browser.')) return;
+  if (action === 'skip'   && !confirm('Skip this application?')) return;
+  try {
+    const res = await fetch(`${API}/jobs/${jobId}/signal`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action }),
+    });
+    if (!res.ok) { alert('Error sending signal: ' + res.statusText); return; }
+    // Hide banner immediately; polling will confirm state change
+    const banner = $('review-banner-' + wid);
+    if (banner) banner.style.display = 'none';
+    delete reviewState[wid];
+  } catch(e) {
+    alert('Network error: ' + e.message);
+  }
+}
+
+// ── Init ─────────────────────────────────────────────────────────────────────
+
+// Fix: all panel tab switching uses panel IDs directly
+document.querySelectorAll('.tab[data-panel]').forEach(tab => {
+  tab.addEventListener('click', () => switchTab(tab.dataset.panel));
+});
+
+loadProfile();
+loadJobs();
+loadApplications();
+poll();
+setInterval(poll, 3000);   // poll handles workers + questions + fill logs
+setInterval(loadApplications, 6000);
+setInterval(loadJobs, 10000);
+</script>
+</body>
+</html>

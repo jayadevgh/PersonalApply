@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Body, Depends, HTTPException, Query
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -33,6 +33,13 @@ ALLOWED_TRANSITIONS = {
     JobStatus.CLAIMED.value: {JobStatus.APPLYING.value, JobStatus.QUEUED.value},
     JobStatus.APPLYING.value: {
         JobStatus.BLOCKED_WAITING_FOR_USER.value,
+        JobStatus.REVIEW.value,
+        JobStatus.SUBMITTED.value,
+        JobStatus.FAILED.value,
+        JobStatus.SKIPPED.value,
+        JobStatus.QUEUED.value,
+    },
+    JobStatus.REVIEW.value: {
         JobStatus.SUBMITTED.value,
         JobStatus.FAILED.value,
         JobStatus.SKIPPED.value,
@@ -83,6 +90,33 @@ def list_jobs(
         stmt = stmt.where(Job.platform == platform)
 
     return db.execute(stmt).scalars().all()
+
+
+# In-memory submit signals: {job_id: "submit" | "skip"}
+_submit_signals: dict[str, str] = {}
+
+
+@router.get("/{job_id}/signal")
+def get_signal(job_id: str):
+    return {"signal": _submit_signals.pop(job_id, None)}
+
+
+@router.post("/{job_id}/signal")
+def send_signal(job_id: str, action: str = Body(..., embed=True)):
+    if action not in {"submit", "skip"}:
+        raise HTTPException(status_code=400, detail="action must be 'submit' or 'skip'")
+    _submit_signals[job_id] = action
+    return {"ok": True}
+
+
+@router.delete("/{job_id}")
+def delete_job(job_id: str, db: Session = Depends(get_db)):
+    job = db.get(Job, job_id)
+    if job is None:
+        raise HTTPException(status_code=404, detail="Job not found")
+    db.delete(job)
+    db.commit()
+    return {"ok": True}
 
 
 @router.post("/claim", response_model=JobClaimResponse)

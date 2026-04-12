@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, Index, String, Text, func
+from sqlalchemy import ARRAY, Boolean, DateTime, ForeignKey, Index, String, Text, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -27,6 +27,9 @@ class Question(Base):
     field_label: Mapped[str | None] = mapped_column(Text, nullable=True)
     page_url: Mapped[str | None] = mapped_column(Text, nullable=True)
     dom_hint: Mapped[str | None] = mapped_column(Text, nullable=True)
+    options: Mapped[list[str] | None] = mapped_column(ARRAY(String), nullable=True)
+    options_fingerprint: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    required: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="false")
     status: Mapped[str] = mapped_column(String, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
     resolved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

@@ -10,6 +10,7 @@ from app.models.enums import JobStatus, QuestionStatus, WorkerStatus
 from app.models.job import Job
 from app.models.question import Question
 from app.models.question_answer_event import QuestionAnswerEvent
+from sqlalchemy import desc
 from app.models.worker import Worker
 from app.schemas.question import (
     BlockedQuestionResponse,
@@ -48,6 +49,9 @@ def create_question(payload: QuestionCreateRequest, db: Session = Depends(get_db
         field_label=payload.field_label,
         page_url=payload.page_url,
         dom_hint=payload.dom_hint,
+        options=payload.options,
+        options_fingerprint=payload.options_fingerprint,
+        required=payload.required,
         status=QuestionStatus.AWAITING_USER.value,
     )
     db.add(question)
@@ -80,9 +84,13 @@ def get_blocked_questions(db: Session = Depends(get_db)):
             BlockedQuestionResponse(
                 id=question.id,
                 job_id=job.id,
+                worker_id=question.worker_id,
                 company=job.company,
                 title=job.title,
                 raw_text=question.raw_text,
+                field_type=question.field_type,
+                options=question.options,
+                required=question.required,
                 status=question.status,
                 created_at=question.created_at,
                 similar_answers=[
@@ -118,13 +126,18 @@ def answer_question(question_id: str, payload: QuestionAnswerRequest, db: Sessio
 
     created_template = None
     if payload.save_as_template:
-        if not payload.template_title or not payload.template_category:
+        is_blank_skip = not payload.final_submitted_text
+        if not is_blank_skip and (not payload.template_title or not payload.template_category):
             raise HTTPException(status_code=400, detail="template_title and template_category required")
         created_template = AnswerTemplate(
-            title=payload.template_title,
-            category=payload.template_category,
+            # Memory key — copied from the question so exact-match lookup works
+            normalized_question_text=question.normalized_text,
+            field_type=question.field_type,
+            options_fingerprint=question.options_fingerprint,
+            title=payload.template_title or question.field_label or question.raw_text,
+            category=payload.template_category or "skipped",
             answer_text=payload.final_submitted_text,
-            tags=payload.template_tags or [],
+            tags=payload.template_tags or (["auto-skip"] if is_blank_skip else []),
             approved=True,
         )
         db.add(created_template)
@@ -150,6 +163,22 @@ def answer_question(question_id: str, payload: QuestionAnswerRequest, db: Sessio
     db.commit()
 
     return {"ok": True, "template_id": str(created_template.id) if created_template else None}
+
+
+@router.get("/{question_id}/answer")
+def get_question_answer(question_id: str, db: Session = Depends(get_db)):
+    """Return the latest answer text for a resolved question (used by worker after blocking)."""
+    question = db.get(Question, question_id)
+    if question is None:
+        raise HTTPException(status_code=404, detail="Question not found")
+    event = db.execute(
+        select(QuestionAnswerEvent)
+        .where(QuestionAnswerEvent.question_id == question.id)
+        .order_by(desc(QuestionAnswerEvent.created_at))
+    ).scalars().first()
+    if event is None:
+        raise HTTPException(status_code=404, detail="No answer found")
+    return {"final_submitted_text": event.final_submitted_text}
 
 
 @router.post("/{question_id}/skip")
