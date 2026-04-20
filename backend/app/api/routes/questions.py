@@ -127,8 +127,8 @@ def answer_question(question_id: str, payload: QuestionAnswerRequest, db: Sessio
     created_template = None
     if payload.save_as_template:
         is_blank_skip = not payload.final_submitted_text
-        if not is_blank_skip and (not payload.template_title or not payload.template_category):
-            raise HTTPException(status_code=400, detail="template_title and template_category required")
+        if not is_blank_skip and not payload.template_category:
+            raise HTTPException(status_code=400, detail="template_category required")
         created_template = AnswerTemplate(
             # Memory key — copied from the question so exact-match lookup works
             normalized_question_text=question.normalized_text,

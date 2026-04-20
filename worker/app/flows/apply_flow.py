@@ -5,6 +5,10 @@ from app.adapters.factory import get_adapter
 from app.api_client import BackendClient
 
 
+class _JobDeleted(Exception):
+    """Raised anywhere in the flow when the job is removed from the queue."""
+
+
 def _post_evidence(client: BackendClient, worker_id: str, job_id: str, evidence: dict) -> None:
     """Post submission evidence (screenshot + URL) to backend."""
     try:
@@ -90,6 +94,9 @@ def _handle_page(
 
         print(f"\n[waiting] open http://localhost:8000/ui/blocked")
         while True:
+            if not client.job_exists(job_id):
+                print("[waiting] job was deleted — aborting")
+                raise _JobDeleted()
             blocked = client.get_blocked_questions()
             blocked_ids = {str(bq["id"]) for bq in blocked}
             remaining = [qid for qid in id_to_q if qid in blocked_ids]
@@ -166,6 +173,10 @@ def process_job(client: BackendClient, worker_id: str, job: dict) -> None:
             print(f"[review] {job['company']} - {job['title']} — waiting for submit/skip in UI")
 
             while True:
+                if not client.job_exists(job_id):
+                    print(f"[review] job was deleted — aborting")
+                    raise _JobDeleted()
+
                 signal = client.get_submit_signal(job_id)
                 if signal == "submit":
                     evidence = adapter.submit(job)
@@ -175,7 +186,10 @@ def process_job(client: BackendClient, worker_id: str, job: dict) -> None:
                     print(f"[submitted] {job['company']} - {job['title']}")
                     break
                 elif signal == "skip":
-                    client.update_job_status(job_id, worker_id, "review", "skipped")
+                    try:
+                        client.update_job_status(job_id, worker_id, "review", "skipped")
+                    except Exception:
+                        pass  # job may have been deleted
                     client.heartbeat(worker_id, "idle", None, None)
                     print(f"[skipped] {job['company']} - {job['title']}")
                     break
@@ -207,6 +221,9 @@ def process_job(client: BackendClient, worker_id: str, job: dict) -> None:
 
                 time.sleep(4)
 
+    except _JobDeleted:
+        print(f"[abort] job {job_id} was deleted — going idle")
+        client.heartbeat(worker_id, "idle", None, None)
     finally:
         if hasattr(adapter, "close"):
             adapter.close()

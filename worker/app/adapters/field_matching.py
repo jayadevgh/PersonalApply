@@ -7,14 +7,18 @@ import re
 
 # ── Greenhouse URL detection ──────────────────────────────────────────────────
 
-GREENHOUSE_HOST_PATTERN = re.compile(r"^job-boards(\..+)?\.greenhouse\.io$")
+# Both the old (boards.) and new (job-boards.) Greenhouse board domains
+GREENHOUSE_BOARD_HOSTS = frozenset({
+    "boards.greenhouse.io",
+    "job-boards.greenhouse.io",
+})
 
 
 def is_greenhouse_url(url: str) -> bool:
     try:
         from urllib.parse import urlparse
         host = urlparse(url).hostname or ""
-        return bool(GREENHOUSE_HOST_PATTERN.match(host))
+        return host in GREENHOUSE_BOARD_HOSTS
     except Exception:
         return False
 

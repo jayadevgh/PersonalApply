@@ -201,6 +201,31 @@
     .btn-submit-job:hover { opacity: 0.85; }
     .btn-skip-job { background: #2a2a2a; color: #888; border: none; border-radius: 6px; padding: 9px 18px; font-size: 13px; cursor: pointer; transition: opacity 0.15s; }
     .btn-skip-job:hover { opacity: 0.85; }
+
+    /* ── Browse panel ── */
+    #panel-browse { flex-direction: column; overflow-y: auto; padding: 28px 32px; gap: 20px; max-width: 900px; width: 100%; margin: 0 auto; }
+    .browse-search-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    .browse-job-row { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 8px; padding: 12px 16px; display: flex; align-items: center; gap: 12px; }
+    .browse-job-info { flex: 1; min-width: 0; }
+    .browse-job-title { font-size: 14px; color: #ddd; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .browse-job-meta { font-size: 11px; color: #666; margin-top: 2px; }
+    .btn-queue-job { background: #4a9eff22; color: #4a9eff; border: 1px solid #4a9eff44; border-radius: 6px; padding: 6px 14px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.15s; white-space: nowrap; }
+    .btn-queue-job:hover { background: #4a9eff33; }
+    .btn-queue-job.queued { background: #06453022; color: #34d399; border-color: #34d39944; cursor: default; }
+    .status-review { background: #7c3aed22; color: #c4b5fd; }
+
+    /* ── Evidence modal ── */
+    .modal-overlay { position: fixed; inset: 0; background: #00000099; z-index: 1000; display: flex; align-items: center; justify-content: center; }
+    .modal-box { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 12px; padding: 28px; max-width: 640px; width: 100%; max-height: 85vh; overflow-y: auto; margin: 20px; }
+    .modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+    .modal-close { background: none; border: none; color: #666; font-size: 20px; cursor: pointer; line-height: 1; }
+    .modal-close:hover { color: #aaa; }
+    .evidence-badge { display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; border-radius: 20px; font-size: 13px; font-weight: 600; margin-bottom: 14px; }
+    .evidence-badge.success { background: #065f46; color: #34d399; }
+    .evidence-badge.fail { background: #7f1d1d; color: #fca5a5; }
+    .evidence-url { font-size: 12px; color: #4a9eff; word-break: break-all; margin-bottom: 14px; }
+    .evidence-message { font-size: 13px; color: #aaa; background: #111; border: 1px solid #2a2a2a; border-radius: 6px; padding: 10px; margin-bottom: 14px; font-family: inherit; }
+    .evidence-screenshot { width: 100%; border-radius: 6px; border: 1px solid #2a2a2a; margin-top: 8px; }
   </style>
 </head>
 <body>
@@ -212,6 +237,8 @@
     <button class="tab active" id="tab-applications" data-panel="panel-applications">Applications</button>
     <button class="tab" id="tab-profile" data-panel="panel-profile">Profile</button>
     <button class="tab" id="tab-jobs" data-panel="panel-jobs">Jobs</button>
+    <button class="tab" id="tab-browse" data-panel="panel-browse">Browse</button>
+    <button class="tab" id="tab-templates" data-panel="panel-templates">Templates</button>
   </div>
 </header>
 
@@ -249,6 +276,26 @@
   </div>
 </div>
 
+<!-- ── Browse panel ── -->
+<div class="panel" id="panel-browse">
+  <div class="job-add-box">
+    <h3>Browse Greenhouse jobs</h3>
+    <input class="field-input" id="browse-q" placeholder="Filter by title, company, or location…" style="width:100%">
+    <div style="border-top:1px solid #222;padding-top:12px;display:flex;flex-direction:column;gap:8px">
+      <div style="font-size:11px;color:#555;text-transform:uppercase;letter-spacing:0.6px">Company list</div>
+      <div id="browse-company-chips" style="display:flex;flex-wrap:wrap;gap:5px"></div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <input class="field-input" id="browse-add-slug" placeholder="Add company slug (e.g. stripe)" style="width:200px;font-size:12px;padding:5px 8px">
+        <button class="btn btn-secondary" id="btn-add-browse-company" style="font-size:12px;padding:5px 12px">Add &amp; load</button>
+        <button class="btn btn-secondary" id="btn-browse-reload" style="font-size:12px;padding:5px 12px">↺ Reload all</button>
+        <button class="btn btn-ghost" id="btn-reset-browse-companies" style="font-size:11px;padding:5px 10px">Reset to defaults</button>
+      </div>
+    </div>
+  </div>
+  <div id="browse-load-status" style="font-size:12px;color:#555;min-height:16px"></div>
+  <div id="browse-job-list" style="display:flex;flex-direction:column;gap:8px"></div>
+</div>
+
 <!-- ── Applications panel ── -->
 <div class="panel" id="panel-applications" style="flex-direction:column;overflow-y:auto;padding:28px 32px;gap:16px;max-width:1000px;width:100%;margin:0 auto">
   <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
@@ -282,6 +329,26 @@
       <tbody id="app-tbody"></tbody>
     </table>
   </div>
+</div>
+
+<!-- ── Templates panel ── -->
+<div class="panel" id="panel-templates" style="flex-direction:column;overflow-y:auto;padding:28px 32px;gap:16px;max-width:900px;width:100%;margin:0 auto">
+  <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+    <input class="field-input" id="tmpl-filter-q" placeholder="Search question…" style="width:220px">
+    <select class="field-input" id="tmpl-filter-cat" style="width:160px">
+      <option value="">All categories</option>
+      <option value="Profile">Profile</option>
+      <option value="Diversity">Diversity</option>
+      <option value="Work Experience">Work Experience</option>
+      <option value="Compensation">Compensation</option>
+      <option value="Relocation">Relocation</option>
+      <option value="Work Auth">Work Auth</option>
+      <option value="Education">Education</option>
+    </select>
+    <button class="btn btn-secondary" style="font-size:12px;padding:7px 14px" onclick="loadTemplates()">Refresh</button>
+    <span id="tmpl-count" style="font-size:12px;color:#555;margin-left:auto"></span>
+  </div>
+  <div id="tmpl-list" style="display:flex;flex-direction:column;gap:8px"></div>
 </div>
 
 <!-- ── Profile panel ── -->
@@ -376,6 +443,17 @@
 </div>
 
 <!-- ── Worker panels injected here ── -->
+
+<!-- ── Evidence modal ── -->
+<div class="modal-overlay" id="evidence-modal" style="display:none">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3 style="font-size:15px;color:#fff">Submission confirmation</h3>
+      <button class="modal-close" onclick="closeEvidenceModal()">✕</button>
+    </div>
+    <div id="evidence-content"></div>
+  </div>
+</div>
 
 <script>
 const API = '';
@@ -771,7 +849,7 @@ function renderDetail(wid) {
         Remember this answer as a template
       </label>
       <div class="template-fields" id="tmpl-fields">
-        <input class="tmpl-input" id="tmpl-title" placeholder="Template title (e.g. Comp expectations)">
+        <input class="tmpl-input" id="tmpl-title" placeholder="Template title (optional — defaults to question text)">
         <div class="section-label" style="margin-top:4px;margin-bottom:4px;">Category</div>
         <div class="cat-picker" id="cat-picker">
           ${PRESET_CATEGORIES.map(c => `<button class="cat-btn" data-cat="${esc(c)}">${esc(c)}</button>`).join('')}
@@ -949,8 +1027,8 @@ async function submitAnswer(q, wid) {
   const tagsRaw = $('tmpl-tags')?.value.trim() || '';
   const tmplTags = tagsRaw ? tagsRaw.split(',').map(t => t.trim()).filter(Boolean) : null;
 
-  if (saveTmpl && (!tmplTitle || !tmplCategory)) {
-    setStatus(wid, 'Template title and category are required.', 'warn');
+  if (saveTmpl && !tmplCategory) {
+    setStatus(wid, 'Please select a template category.', 'warn');
     return;
   }
 
@@ -1060,21 +1138,24 @@ function slugify(str) {
   return str.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 }
 
+let _prefillTimer = null;
 $('job-url').addEventListener('input', () => {
   const url = $('job-url').value.trim();
   const platform = detectPlatform(url);
   const tag = $('job-platform-tag');
-  if (platform) {
-    tag.textContent = platform;
-    tag.style.display = '';
-    // Try to extract company from Greenhouse URL: boards.greenhouse.io/companyname/...
-    const m = url.match(/greenhouse\.io\/([^/?#]+)/);
-    if (m && !$('job-company').value) {
-      $('job-company').value = m[1].replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-    }
-  } else {
-    tag.style.display = 'none';
-  }
+  if (platform) { tag.textContent = platform; tag.style.display = ''; }
+  else { tag.style.display = 'none'; }
+
+  clearTimeout(_prefillTimer);
+  if (!url) return;
+  _prefillTimer = setTimeout(async () => {
+    try {
+      const data = await fetch(`${API}/jobs/prefill?url=${encodeURIComponent(url)}`).then(r => r.json());
+      if (data.company && !$('job-company').value) $('job-company').value = data.company;
+      if (data.title   && !$('job-title').value)   $('job-title').value   = data.title;
+      if (data.platform) { $('job-platform-tag').textContent = data.platform; $('job-platform-tag').style.display = ''; }
+    } catch(_) {}
+  }, 700);
 });
 
 $('btn-add-job').addEventListener('click', async () => {
@@ -1138,9 +1219,12 @@ async function loadJobs() {
 }
 
 async function requeueJob(id) {
-  // Reset status to queued by re-creating — simplest approach is PATCH status
-  // For now just reload; full requeue needs a backend endpoint
-  alert('Re-queue: clear the DB and re-add the link for now. Full re-queue coming soon.');
+  try {
+    const res = await fetch(`${API}/jobs/${id}/requeue`, { method: 'POST' });
+    if (!res.ok) { const e = await res.json().catch(() => {}); alert('Requeue failed: ' + (e?.detail || res.statusText)); return; }
+    loadJobs();
+    loadApplications();
+  } catch (e) { alert('Network error: ' + e.message); }
 }
 
 async function deleteJob(id) {
@@ -1173,6 +1257,8 @@ async function loadApplications() {
         <td style="padding:10px 10px"><a href="${esc(j.source_url)}" target="_blank" style="color:#4a9eff;font-size:12px">Open</a></td>
         <td style="padding:10px 10px;text-align:right">
           ${j.status === 'review' ? `<button class="btn btn-primary" style="font-size:11px;padding:5px 10px" onclick="submitJob('${esc(j.id)}')">Submit</button> <button class="btn btn-secondary" style="font-size:11px;padding:5px 10px" onclick="skipJob('${esc(j.id)}')">Skip</button> ` : ''}
+          ${j.status === 'submitted' ? `<button class="btn btn-secondary" style="font-size:11px;padding:5px 10px" onclick="viewEvidence('${esc(j.id)}','${esc(j.company)}','${esc(j.title)}')">View confirmation</button> ` : ''}
+          ${'skipped failed submitted'.includes(j.status) ? `<button class="btn btn-secondary" style="font-size:11px;padding:5px 10px" onclick="requeueJob('${esc(j.id)}')">Re-queue</button> ` : ''}
           <button class="btn btn-danger" style="font-size:11px;padding:5px 10px" onclick="deleteJob('${esc(j.id)}')">Remove</button>
         </td>
       </tr>`).join('');
@@ -1442,6 +1528,335 @@ async function sendJobSignal(wid, action) {
   }
 }
 
+// ── Browse Greenhouse ─────────────────────────────────────────────────────────
+
+// Default set of known Greenhouse company slugs — covers most major tech employers.
+// Users can add/remove via the "Company list" panel; this is just the starting point.
+const DEFAULT_GH_SLUGS = [
+  'stripe','airbnb','lyft','cloudflare','hashicorp','datadog','pagerduty',
+  'palantir','ramp','brex','plaid','robinhood','coinbase','rippling','gusto',
+  'lattice','discord','canva','instacart','doordash','chime','replit','scale',
+  'openai','anthropic','perplexity','notion','linear','vercel','figma',
+  'gitlab','github','shopify','squarespace','twilio','sendgrid','auth0','okta',
+  'mongodb','elastic','confluent','snowflakecomputing','databricks','dbt',
+  'asana','monday','airtable','miro','zapier','hubspot','intercom',
+  'brainware','benchling','ginkgo','tempus','veeva',
+  'netsuite','coupa','anaplan','toast','servicetitan',
+  'waymo','zoox','nuro','rivian','lucid',
+];
+
+// { slug -> { company, jobs[] } } — in-memory cache per session
+const browseData = {};
+let browseQueuedIds = new Set();
+let _browseLoaded = false;  // have we done the initial load yet?
+
+function getBrowseSlugs() {
+  try {
+    const saved = localStorage.getItem('gh_watch_slugs');
+    return saved ? JSON.parse(saved) : [...DEFAULT_GH_SLUGS];
+  } catch { return [...DEFAULT_GH_SLUGS]; }
+}
+function saveBrowseSlugs(arr) {
+  localStorage.setItem('gh_watch_slugs', JSON.stringify(arr));
+}
+
+function renderCompanyChips() {
+  const chips = $('browse-company-chips');
+  if (!chips) return;
+  const slugs = getBrowseSlugs();
+  chips.innerHTML = slugs.map(s => `
+    <span style="display:inline-flex;align-items:center;gap:3px;background:#1a1a1a;border:1px solid #2a2a2a;color:#888;border-radius:12px;padding:2px 8px;font-size:11px">
+      ${esc(s)}
+      <button data-slug="${esc(s)}" style="background:none;border:none;color:#555;cursor:pointer;font-size:13px;line-height:1;padding:0" title="Remove">×</button>
+    </span>`).join('');
+  chips.querySelectorAll('button[data-slug]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const next = getBrowseSlugs().filter(s => s !== btn.dataset.slug);
+      saveBrowseSlugs(next);
+      delete browseData[btn.dataset.slug];
+      renderCompanyChips();
+      renderBrowseAll();
+    });
+  });
+}
+
+// ── Browse filter ─────────────────────────────────────────────────────────────
+
+$('browse-q')?.addEventListener('input', renderBrowseAll);
+
+function renderJobResults(jobs, isGlobal) {
+  const list = $('browse-job-list');
+  if (!jobs.length) { list.innerHTML = '<div style="color:#444;font-size:13px">No results.</div>'; return; }
+  list.innerHTML = jobs.map(j => {
+    const queued = browseQueuedIds.has(String(j.id));
+    const dateStr = j.published_at ? new Date(j.published_at).toLocaleDateString() : '';
+    const tags = (j.tags || []).slice(0, 4).map(t => `<span style="background:#1a1a1a;border:1px solid #2a2a2a;color:#666;border-radius:3px;padding:1px 6px;font-size:10px">${esc(t)}</span>`).join('');
+    return `<div class="browse-job-row" data-job-id="${esc(String(j.id))}">
+      <div class="browse-job-info">
+        <div style="font-size:10px;color:#555;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:2px">${esc(j.company || j._company || '')}</div>
+        <div class="browse-job-title">${esc(j.title)}</div>
+        <div class="browse-job-meta">${esc(j.location || 'Remote')}${dateStr ? ' · ' + dateStr : ''}${j.url ? ` · <a href="${esc(j.url)}" target="_blank" style="color:#4a9eff">View</a>` : ''}</div>
+        ${tags ? `<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:4px">${tags}</div>` : ''}
+      </div>
+      <button class="btn-queue-job ${queued ? 'queued' : ''}" data-job-id="${esc(String(j.id))}" ${queued ? 'disabled' : ''}>${queued ? '✓ Queued' : '+'}</button>
+    </div>`;
+  }).join('');
+  list.querySelectorAll('.btn-queue-job:not([disabled])').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const job = jobs.find(j => String(j.id) === btn.dataset.jobId);
+      if (job) queueBrowseJob(btn, job);
+    });
+  });
+}
+
+// ── Greenhouse company browse ──────────────────────────────────────────────────
+
+$('btn-add-browse-company')?.addEventListener('click', addBrowseCompany);
+$('browse-add-slug')?.addEventListener('keydown', e => { if (e.key === 'Enter') addBrowseCompany(); });
+$('btn-reset-browse-companies')?.addEventListener('click', () => {
+  if (!confirm('Reset to the default company list? Your additions will be removed.')) return;
+  localStorage.removeItem('gh_watch_slugs');
+  Object.keys(browseData).forEach(k => delete browseData[k]);
+  _browseLoaded = false;
+  renderCompanyChips();
+  renderBrowseAll();
+});
+
+async function addBrowseCompany() {
+  const input = $('browse-add-slug');
+  const slug = input?.value.trim().toLowerCase().replace(/\s+/g, '-');
+  if (!slug) return;
+  const slugs = getBrowseSlugs();
+  if (!slugs.includes(slug)) { slugs.push(slug); saveBrowseSlugs(slugs); }
+  input.value = '';
+  renderCompanyChips();
+  const statusEl = $('browse-load-status');
+  statusEl.style.color = '#555';
+  statusEl.textContent = `Loading ${slug}…`;
+  await loadBrowseCompany(slug);
+  statusEl.textContent = '';
+  renderBrowseAll();
+}
+
+async function loadBrowseCompany(slug) {
+  try {
+    const data = await fetch(`${API}/jobs/greenhouse?slug=${encodeURIComponent(slug)}`).then(r => {
+      if (!r.ok) return r.json().then(e => Promise.reject(e.detail || r.statusText));
+      return r.json();
+    });
+    browseData[slug] = { company: data.company || slug, jobs: data.jobs || [] };
+  } catch (_) {
+    // silently skip failed slugs (company may not use Greenhouse)
+    browseData[slug] = { company: slug, jobs: [] };
+  }
+}
+
+async function loadAllBrowseCompanies() {
+  const slugs = getBrowseSlugs();
+  const statusEl = $('browse-load-status');
+  statusEl.style.color = '#555';
+  statusEl.textContent = `Loading ${slugs.length} companies…`;
+  // Load in small batches so we don't hammer the backend
+  const BATCH = 8;
+  for (let i = 0; i < slugs.length; i += BATCH) {
+    await Promise.all(slugs.slice(i, i + BATCH).map(loadBrowseCompany));
+    renderBrowseAll();  // update list as each batch comes in
+  }
+  statusEl.textContent = '';
+  renderBrowseAll();
+  _browseLoaded = true;
+}
+
+$('btn-browse-reload')?.addEventListener('click', async () => {
+  Object.keys(browseData).forEach(k => delete browseData[k]);
+  _browseLoaded = false;
+  await loadAllBrowseCompanies();
+});
+
+function renderBrowseAll() {
+  const q = ($('browse-q')?.value || '').toLowerCase();
+  let all = [];
+  for (const [, d] of Object.entries(browseData)) {
+    for (const j of d.jobs) all.push({ ...j, _company: d.company });
+  }
+  all.sort((a, b) => (b.updated_at || '').localeCompare(a.updated_at || ''));
+  if (q) {
+    all = all.filter(j =>
+      j.title.toLowerCase().includes(q) ||
+      (j.location || '').toLowerCase().includes(q) ||
+      (j._company || '').toLowerCase().includes(q)
+    );
+  }
+
+  const loaded = Object.keys(browseData).length;
+  const statusEl = $('browse-load-status');
+  if (statusEl && !statusEl.textContent.includes('Loading')) {
+    statusEl.style.color = '#555';
+    statusEl.textContent = loaded ? `${all.length} job${all.length !== 1 ? 's' : ''} across ${loaded} companies` : '';
+  }
+
+  renderJobResults(all, /* isGlobal */ false);
+}
+
+async function queueBrowseJob(btn, job) {
+  const company = job.company || job._company || 'Unknown';
+  const canonical = slugify(company) + '::' + slugify(job.title) + '::' + job.url;
+  btn.disabled = true;
+  btn.textContent = '…';
+  try {
+    const res = await fetch(`${API}/jobs`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        canonical_key: canonical, company, title: job.title,
+        location: job.location || null, platform: 'greenhouse',
+        source_url: job.url, status: 'queued',
+      }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      btn.disabled = false; btn.textContent = '+';
+      alert('Error: ' + (err.detail || 'Unknown error'));
+      return;
+    }
+    btn.classList.add('queued');
+    btn.textContent = '✓ Queued';
+    browseQueuedIds.add(job.id);
+    loadJobs();
+  } catch (e) {
+    btn.disabled = false; btn.textContent = '+';
+    alert('Network error: ' + e.message);
+  }
+}
+
+// ── Templates ────────────────────────────────────────────────────────────────
+
+let _allTemplates = [];
+
+async function loadTemplates() {
+  const q   = $('tmpl-filter-q')?.value.trim() || '';
+  const cat = $('tmpl-filter-cat')?.value || '';
+  let url = `${API}/answers/templates?`;
+  if (q)   url += `q=${encodeURIComponent(q)}&`;
+  if (cat) url += `category=${encodeURIComponent(cat)}&`;
+  try {
+    _allTemplates = await fetch(url).then(r => r.json());
+    $('tmpl-count').textContent = `${_allTemplates.length} template${_allTemplates.length !== 1 ? 's' : ''}`;
+    renderTemplates();
+  } catch(e) { console.error(e); }
+}
+
+function renderTemplates() {
+  const list = $('tmpl-list');
+  if (!list) return;
+  if (!_allTemplates.length) {
+    list.innerHTML = '<div style="color:#444;font-size:13px;padding:20px 0">No saved templates yet. Answers you save while answering blocked questions will appear here.</div>';
+    return;
+  }
+  list.innerHTML = _allTemplates.map(t => `
+    <div style="background:#1a1a1a;border:1px solid #2a2a2a;border-radius:8px;padding:14px 16px;display:flex;flex-direction:column;gap:8px" id="tmpl-row-${esc(t.id)}">
+      <div style="display:flex;align-items:flex-start;gap:10px">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:11px;color:#555;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:3px">${esc(t.category)}${t.field_type ? ` · ${esc(t.field_type)}` : ''}${t.times_used ? ` · used ${t.times_used}×` : ''}</div>
+          <div style="font-size:13px;color:#ccc;margin-bottom:6px">${esc(t.title)}</div>
+          <div id="tmpl-answer-display-${esc(t.id)}" style="font-size:13px;color:#fff;background:#111;border:1px solid #2a2a2a;border-radius:5px;padding:7px 10px;white-space:pre-wrap;word-break:break-word">${esc(t.answer_text || '(blank — skip)')}
+          </div>
+          <div id="tmpl-edit-form-${esc(t.id)}" style="display:none;flex-direction:column;gap:6px">
+            <textarea id="tmpl-edit-input-${esc(t.id)}" rows="3" style="background:#111;border:1px solid #4a9eff;border-radius:5px;padding:8px 10px;color:#e8e8e8;font-size:13px;font-family:inherit;width:100%;resize:vertical">${esc(t.answer_text)}</textarea>
+            <div style="display:flex;gap:6px">
+              <button class="btn btn-primary" style="font-size:12px;padding:5px 14px" onclick="saveTemplateEdit('${esc(t.id)}')">Save</button>
+              <button class="btn btn-secondary" style="font-size:12px;padding:5px 14px" onclick="cancelTemplateEdit('${esc(t.id)}')">Cancel</button>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;gap:6px;flex-shrink:0">
+          <button class="btn btn-secondary" style="font-size:11px;padding:4px 10px" onclick="startTemplateEdit('${esc(t.id)}')">Edit</button>
+          <button class="btn btn-danger" style="font-size:11px;padding:4px 10px" onclick="deleteTemplate('${esc(t.id)}')">Delete</button>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+function startTemplateEdit(id) {
+  $(`tmpl-answer-display-${id}`).style.display = 'none';
+  const form = $(`tmpl-edit-form-${id}`);
+  form.style.display = 'flex';
+  $(`tmpl-edit-input-${id}`)?.focus();
+}
+
+function cancelTemplateEdit(id) {
+  $(`tmpl-answer-display-${id}`).style.display = '';
+  $(`tmpl-edit-form-${id}`).style.display = 'none';
+}
+
+async function saveTemplateEdit(id) {
+  const val = $(`tmpl-edit-input-${id}`)?.value ?? '';
+  try {
+    const res = await fetch(`${API}/answers/templates/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ answer_text: val }),
+    });
+    if (!res.ok) { alert('Save failed: ' + res.statusText); return; }
+    await loadTemplates();
+  } catch(e) { alert('Network error: ' + e.message); }
+}
+
+async function deleteTemplate(id) {
+  if (!confirm('Delete this saved answer? The bot will ask you again next time this question appears.')) return;
+  try {
+    const res = await fetch(`${API}/answers/templates/${id}`, { method: 'DELETE' });
+    if (!res.ok) { alert('Delete failed: ' + res.statusText); return; }
+    await loadTemplates();
+  } catch(e) { alert('Network error: ' + e.message); }
+}
+
+$('tmpl-filter-q')?.addEventListener('input', loadTemplates);
+$('tmpl-filter-cat')?.addEventListener('change', loadTemplates);
+
+// ── Submission evidence ───────────────────────────────────────────────────────
+
+async function viewEvidence(jobId, company, title) {
+  const modal = $('evidence-modal');
+  const content = $('evidence-content');
+  content.innerHTML = '<div style="color:#555;font-size:13px">Loading…</div>';
+  modal.style.display = 'flex';
+
+  try {
+    const ev = await fetch(`${API}/jobs/${jobId}/evidence`).then(r => {
+      if (!r.ok) throw new Error('No evidence');
+      return r.json();
+    });
+
+    const successBadge = ev.success
+      ? '<span class="evidence-badge success">✓ Submitted successfully</span>'
+      : '<span class="evidence-badge fail">⚠ Submission uncertain</span>';
+
+    const screenshotHtml = `<div style="margin-top:8px">
+      <div style="font-size:11px;color:#555;text-transform:uppercase;letter-spacing:0.6px;margin-bottom:6px">Screenshot after submit</div>
+      <img class="evidence-screenshot" src="${API}/jobs/${jobId}/screenshot" alt="Post-submit screenshot" onerror="this.style.display='none'">
+    </div>`;
+
+    content.innerHTML = `
+      <div style="font-size:12px;color:#888;margin-bottom:10px">${esc(company)} — ${esc(title)}</div>
+      ${successBadge}
+      ${ev.url ? `<div class="evidence-url"><span style="color:#555;font-size:11px">Post-submit URL: </span><a href="${esc(ev.url)}" target="_blank" style="color:#4a9eff">${esc(ev.url)}</a></div>` : ''}
+      ${ev.message ? `<div class="evidence-message">${esc(ev.message)}</div>` : ''}
+      ${screenshotHtml}
+    `;
+  } catch (_) {
+    content.innerHTML = '<div style="color:#555;font-size:13px">No confirmation data available for this job. The screenshot is only kept while the backend is running.</div>';
+  }
+}
+
+function closeEvidenceModal() {
+  $('evidence-modal').style.display = 'none';
+}
+
+$('evidence-modal')?.addEventListener('click', e => {
+  if (e.target === $('evidence-modal')) closeEvidenceModal();
+});
+
 // ── Init ─────────────────────────────────────────────────────────────────────
 
 // Fix: all panel tab switching uses panel IDs directly
@@ -1456,6 +1871,19 @@ poll();
 setInterval(poll, 3000);   // poll handles workers + questions + fill logs
 setInterval(loadApplications, 6000);
 setInterval(loadJobs, 10000);
+
+// Browse: render chips immediately; load jobs on first visit to Browse tab
+renderCompanyChips();
+document.querySelector('[data-panel="panel-browse"]')?.addEventListener('click', () => {
+  renderCompanyChips();
+  if (!_browseLoaded) loadAllBrowseCompanies();
+});
+
+// Templates: load on first visit
+let _templatesLoaded = false;
+document.querySelector('[data-panel="panel-templates"]')?.addEventListener('click', () => {
+  if (!_templatesLoaded) { _templatesLoaded = true; loadTemplates(); }
+});
 </script>
 </body>
 </html>

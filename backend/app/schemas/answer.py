@@ -14,6 +14,8 @@ class AnswerTemplateCreateRequest(BaseModel):
 class AnswerTemplateResponse(BaseModel):
     id: UUID
     title: str
+    normalized_question_text: str | None = None
+    field_type: str | None = None
     category: str
     answer_text: str
     tags: list[str]

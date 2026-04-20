@@ -27,6 +27,10 @@ class BackendClient:
         resp.raise_for_status()
         return resp.json()
 
+    def job_exists(self, job_id: str) -> bool:
+        resp = self.client.get(f"/jobs/{job_id}")
+        return resp.status_code == 200
+
     def update_job_status(self, job_id: str, worker_id: str, from_status: str, to_status: str) -> dict:
         resp = self.client.post(
             f"/jobs/{job_id}/status",
@@ -47,6 +51,8 @@ class BackendClient:
 
     def get_submit_signal(self, job_id: str) -> str | None:
         resp = self.client.get(f"/jobs/{job_id}/signal")
+        if resp.status_code == 404:
+            return "skip"   # job deleted — treat as skip
         resp.raise_for_status()
         return resp.json().get("signal")
 
@@ -82,13 +88,16 @@ class BackendClient:
         resp.raise_for_status()
         return resp.json()
 
+    def post_submission_evidence(self, job_id: str, evidence: dict) -> None:
+        resp = self.client.post(f"/jobs/{job_id}/evidence", json=evidence)
+        resp.raise_for_status()
+
     def get_exact_template(
         self,
         normalized_text: str,
         field_type: str | None,
         options_fingerprint: str | None,
     ) -> dict | None:
-        """Return matching template dict or None if no exact match."""
         params: dict = {"normalized_text": normalized_text}
         if field_type:
             params["field_type"] = field_type

@@ -55,23 +55,159 @@ class GreenhouseAdapter(BaseAdapter):
 
     # ── Navigation ────────────────────────────────────────────────────────────
 
+    def _is_on_application_form(self) -> bool:
+        """Return True if the current page is a Greenhouse application form ready to fill."""
+        assert self.page is not None
+        url = self.page.url
+        # Definitive: we're on a Greenhouse-hosted board URL
+        if is_greenhouse_url(url):
+            return True
+        # Check DOM markers — catches forms embedded/injected directly into company pages.
+        # Do this BEFORE the gh_jid check so JS-injected forms (Brex-style) are caught.
+        for sel in ["#application_form", "form#application", "[data-greenhouse-form]"]:
+            try:
+                if self.page.locator(sel).count() > 0:
+                    return True
+            except Exception:
+                pass
+        # gh_jid means we're on a company job-detail page (form may be iframe or Apply button)
+        if "gh_jid" in url:
+            # Give JS-injected forms extra time to render before giving up
+            try:
+                self.page.wait_for_selector("#application_form", timeout=4000)
+                return True
+            except Exception:
+                pass
+            return False
+        return False
+
+    def _find_embedded_greenhouse_url(self) -> str | None:
+        """Return the src of a Greenhouse embed iframe on the page, if one exists."""
+        assert self.page is not None
+        try:
+            iframes = self.page.locator("iframe[src*='greenhouse.io']")
+            if iframes.count() > 0:
+                src = iframes.first.get_attribute("src")
+                return src or None
+        except Exception:
+            pass
+        return None
+
+    def _click_apply_button(self) -> bool:
+        """Find and click an Apply/Apply Now button. Handles new-tab and same-tab navigation."""
+        assert self.page is not None
+        assert self.context is not None
+
+        candidates = [
+            "a:has-text('Apply Now')",
+            "a:has-text('Apply for this job')",
+            "a:has-text('Apply for this position')",
+            "a:has-text('Apply for this role')",
+            "button:has-text('Apply Now')",
+            "button:has-text('Apply for this job')",
+            "button:has-text('Apply for this position')",
+            "a:has-text('Apply')",
+            "button:has-text('Apply')",
+        ]
+
+        for sel in candidates:
+            try:
+                btn = self.page.locator(sel).first
+                if btn.count() == 0 or not btn.is_visible(timeout=500):
+                    continue
+
+                original_url = self.page.url
+                # Snapshot existing page IDs so we can detect any brand-new tabs
+                existing_page_ids = {id(p) for p in self.context.pages}
+
+                btn.click()
+
+                # Poll up to ~10 s for either a new tab OR same-tab URL change
+                navigated = False
+                for _ in range(20):
+                    self.page.wait_for_timeout(500)
+
+                    # New tab? Take the most recently added one.
+                    new_pages = [p for p in self.context.pages if id(p) not in existing_page_ids]
+                    if new_pages:
+                        new_page = new_pages[-1]
+                        try:
+                            # Use "load" so React/JS scripts have executed before we scan
+                            new_page.wait_for_load_state("load", timeout=20_000)
+                            new_page.wait_for_timeout(1500)
+                        except Exception:
+                            pass
+                        self.page = new_page
+                        navigated = True
+                        break
+
+                    # Same-tab navigation?
+                    if self.page.url != original_url:
+                        try:
+                            self.page.wait_for_load_state("load", timeout=20_000)
+                            self.page.wait_for_timeout(1500)
+                        except Exception:
+                            pass
+                        navigated = True
+                        break
+
+                if not navigated:
+                    print(f"[open] no navigation after clicking {sel!r} — skipping")
+                    continue
+
+                print(f"[open] clicked Apply ({sel!r}), now on: {self.page.url}")
+                return True
+            except Exception as e:
+                print(f"[open] could not click {sel!r}: {e}")
+                continue
+        return False
+
     def open_application(self, job: dict) -> None:
         self._ensure_browser()
         assert self.page is not None
 
         url = job["source_url"]
-        if not is_greenhouse_url(url):
-            print(f"[warn] URL does not look like a canonical Greenhouse job board URL: {url}")
-
         self.page.goto(url, wait_until="domcontentloaded", timeout=60_000)
         self.page.wait_for_timeout(2000)
 
-        for selector in ["form", "#application_form", ".application", ".main_fields"]:
+        # If we landed on a company job-detail page rather than the Greenhouse form, click through
+        if not self._is_on_application_form():
+            print(f"[open] not on application form ({self.page.url}) — checking for embedded form or Apply button")
+            # Priority 1: embedded Greenhouse iframe (e.g. some company pages embed via <iframe>)
+            iframe_url = self._find_embedded_greenhouse_url()
+            if iframe_url:
+                print(f"[open] found embedded Greenhouse iframe — navigating to: {iframe_url}")
+                self.page.goto(iframe_url, wait_until="domcontentloaded", timeout=30_000)
+                self.page.wait_for_timeout(2000)
+                job["source_url"] = self.page.url
+            # Priority 2: Apply button that opens the form (new tab or same tab)
+            elif self._click_apply_button():
+                print(f"[open] now on: {self.page.url}")
+                job["source_url"] = self.page.url
+            else:
+                print(f"[open] no Apply button found — proceeding with current page")
+
+        print(f"[open] form page: {self.page.url}")
+
+        # Wait for the application form to render — use a generous timeout since some
+        # Greenhouse forms hydrate slowly (React SSR / lazy loading)
+        for selector in ["#application_form", "form#application", "form", ".application", ".main_fields"]:
             try:
-                self.page.locator(selector).first.wait_for(timeout=3000)
+                self.page.locator(selector).first.wait_for(timeout=6000)
+                print(f"[open] form landmark found: {selector!r}")
                 break
             except Exception:
                 pass
+
+        # Extra wait for React-rendered inputs (e.g. Stripe) — form container may appear
+        # before individual <input> elements are injected by client-side JavaScript.
+        try:
+            self.page.wait_for_selector(
+                "#application_form input, form input[type='text'], form input[type='email']",
+                timeout=8000,
+            )
+        except Exception:
+            pass
 
         self.page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
         self.page.wait_for_timeout(1500)
@@ -523,9 +659,21 @@ class GreenhouseAdapter(BaseAdapter):
             "input[type='submit'][value*='Continue' i]",
             "a:has-text('Next')",
         ]
-        for selector in candidates:
+        # On company pages with an embedded Greenhouse form, restrict clicks to within
+        # #application_form so we don't accidentally click site navigation buttons
+        # (e.g. Brex site "Continue" links) which cause an infinite navigation loop.
+        container = ""
+        if not is_greenhouse_url(self.page.url):
             try:
-                btn = self.page.locator(selector).first
+                if self.page.locator("#application_form").count() > 0:
+                    container = "#application_form "
+            except Exception:
+                pass
+
+        for selector in candidates:
+            scoped = container + selector
+            try:
+                btn = self.page.locator(scoped).first
                 if btn.count() > 0 and btn.is_visible(timeout=300):
                     btn.click()
                     self.page.wait_for_load_state("domcontentloaded", timeout=15_000)
